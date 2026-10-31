@@ -3,9 +3,13 @@ import type { Format } from '../data/positions';
 import { FORMAT_SHORT } from '../data/positions';
 import { positionsQuestion } from '../engine/scenarios/positions';
 import { preflopQuestion } from '../engine/scenarios/preflop';
+import { outsQuestion } from '../engine/scenarios/outs';
+import { potOddsQuestion } from '../engine/scenarios/potodds';
+import { postflopQuestion } from '../engine/scenarios/postflop';
+import { fullHandQuestion } from '../engine/scenarios/fullhand';
 import { type Question, type SkillId, SKILLS } from '../engine/scenarios/types';
 import { getApiKey, mixWeights, recordAnswer } from '../lib/storage';
-import { Icon, PlayingCard, Rich, TopBar } from '../ui/components';
+import { Cards, Icon, PlayingCard, Rich, TopBar } from '../ui/components';
 import { PokerTable } from '../ui/PokerTable';
 import { back, useApp } from '../ui/state';
 import { ExplainSheet } from './ExplainSheet';
@@ -13,6 +17,10 @@ import { ExplainSheet } from './ExplainSheet';
 const GEN: Record<SkillId, (f: Format) => Question> = {
   positions: (f) => positionsQuestion(f),
   preflop: (f) => preflopQuestion(f),
+  outs: (f) => outsQuestion(f),
+  potodds: (f) => potOddsQuestion(f),
+  postflop: (f) => postflopQuestion(f),
+  fullhand: (f) => fullHandQuestion(f),
 };
 
 function pickSkill(weights: Record<SkillId, number>): SkillId {
@@ -57,7 +65,7 @@ export function Practice({ skill }: { skill: SkillId | 'mix' }) {
   const goNext = () => {
     setAnswer(null);
     setExplaining(false);
-    setQ(next(format));
+    setQ(q.followUp ?? next(format));
     window.scrollTo({ top: 0 });
   };
 
@@ -71,7 +79,7 @@ export function Practice({ skill }: { skill: SkillId | 'mix' }) {
   const correctChoice = q.choices.find((c) => c.id === q.correct)!;
   const yours = q.choices.find((c) => c.id === answer);
   const ok = answer === q.correct;
-  const three = q.choices.length === 3 && q.skill === 'preflop';
+  const three = q.choices.length === 3 && q.choices.every((c) => c.label.length <= 9);
   const recText = useMemo(() => `${correctChoice.label}${correctChoice.sub ? ` ${correctChoice.sub}` : ''}`, [correctChoice]);
 
   return (
@@ -87,10 +95,21 @@ export function Practice({ skill }: { skill: SkillId | 'mix' }) {
           }
         />
         <div className="drill-main">
-          {skill === 'mix' && <div className="tiny">{SKILLS.find((s) => s.id === q.skill)!.title}</div>}
-          <div className="prompt">{q.prompt}</div>
+          {(skill === 'mix' || q.stepLabel) && (
+            <div className="tiny">{[skill === 'mix' ? SKILLS.find((s) => s.id === q.skill)!.title : null, q.stepLabel].filter(Boolean).join(' · ')}</div>
+          )}
+          <div className="prompt"><Rich text={q.prompt} /></div>
           {q.context && <div className="context">{q.context}</div>}
           {q.table && <PokerTable t={q.table} />}
+          {q.cardsView && (
+            <div className="cards-view">
+              {q.cardsView.villain && (
+                <div className="cv-row"><span className="cv-label">{q.cardsView.villainLabel ?? 'Opponent'}</span><Cards cards={q.cardsView.villain} size="md" /></div>
+              )}
+              <div className="cv-row"><span className="cv-label">Board</span>{q.cardsView.board.length ? <Cards cards={q.cardsView.board} size="md" /> : <span className="muted small">No cards yet – before the flop</span>}</div>
+              <div className="cv-row"><span className="cv-label">You</span><Cards cards={q.cardsView.hero} size="lg" /></div>
+            </div>
+          )}
           {q.table?.heroCards && (
             <div className="hero-hand" aria-label="Your cards">
               <PlayingCard card={q.table.heroCards[0]} size="lg" />
@@ -105,8 +124,8 @@ export function Practice({ skill }: { skill: SkillId | 'mix' }) {
                 {ok ? (q.close ? 'Right – and it’s a close one' : 'Right') : 'Not quite'}
               </div>
               {!ok && <div className="rec">Recommended: {recText}{yours ? <span className="muted"> · you chose {yours.label}</span> : null}</div>}
-              <p style={{ marginBottom: 0 }}><Rich text={q.explanation} /></p>
-              {q.closeNote && <div className="note"><b>Close call · </b><Rich text={q.closeNote} /></div>}
+              {q.explanation.split('\n\n').map((para, i) => <p key={i} style={{ marginBottom: i === q.explanation.split('\n\n').length - 1 ? 0 : 10 }}><Rich text={para} /></p>)}
+              {q.closeNote && <div className="note"><b>{q.close ? 'Close call · ' : 'Note · '}</b><Rich text={q.closeNote} /></div>}
               <div style={{ marginTop: 12 }}>
                 {hasKey ? (
                   <button className="btn small ghost" onClick={() => setExplaining(true)} style={{ paddingLeft: 0 }}>{Icon.spark} Explain more</button>
@@ -127,7 +146,7 @@ export function Practice({ skill }: { skill: SkillId | 'mix' }) {
               </button>
             ))
           ) : (
-            <button className="btn primary" onClick={goNext} autoFocus>Next {Icon.chev}</button>
+            <button className="btn primary" onClick={goNext} autoFocus>{q.followUp ? 'Continue' : 'Next'} {Icon.chev}</button>
           )}
           <div className="session" aria-live="polite">{session.n > 0 ? `${session.right} of ${session.n} this session · stop any time` : 'Answer as many as you like'}</div>
         </div>

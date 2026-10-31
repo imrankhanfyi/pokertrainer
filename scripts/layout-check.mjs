@@ -20,6 +20,13 @@ const PAGES = [
   ['lesson2', '#/lesson/2'],
   ['positions', '#/practice/positions'],
   ['preflop', '#/practice/preflop'],
+  ['outs', '#/practice/outs'],
+  ['potodds', '#/practice/potodds'],
+  ['postflop', '#/practice/postflop'],
+  ['fullhand', '#/practice/fullhand'],
+  ['lesson3', '#/lesson/3'],
+  ['lesson4', '#/lesson/4'],
+  ['lesson5', '#/lesson/5'],
   ['stats', '#/stats'],
   ['settings', '#/settings'],
 ];
@@ -82,6 +89,32 @@ for (const scheme of ['light', 'dark']) {
     const gw = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
     if (gw) { failures++; console.log(`✗ ${scheme}/${size.name}/chart: overflow`); }
     await page.screenshot({ path: `layout-shots/${scheme}-${size.name}-chart.png`, fullPage: true });
+
+    // Each new drill: answer once, screenshot feedback, follow any multi-step chain to the end.
+    for (const d of ['outs', 'potodds', 'postflop', 'fullhand']) {
+      await page.goto(base + `#/practice/${d}`);
+      for (let step = 0; step < 6; step++) {
+        await page.locator('.choice').first().click();
+        await page.locator('.feedback').waitFor();
+        await page.waitForTimeout(350);
+        const ow2 = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+        if (ow2) { failures++; console.log(`✗ ${scheme}/${size.name}/${d} step ${step}: overflow`); }
+        await page.screenshot({ path: `layout-shots/${scheme}-${size.name}-${d}-fb${step}.png`, fullPage: true });
+        const label = await page.locator('.choices .btn.primary').innerText();
+        if (!label.startsWith('Continue')) break;
+        await page.locator('.choices .btn.primary').click();
+      }
+    }
+    // Lesson tables: lesson 3 screen 4 (odds table), lesson 4 screen 2 (price table).
+    for (const [l, n] of [[3, 3], [4, 1]]) {
+      await page.goto(base + `#/lesson/${l}`);
+      for (let k = 0; k < n; k++) await page.getByRole('button', { name: 'Next', exact: true }).click();
+      await page.locator('.mini-table').waitFor();
+      await page.waitForTimeout(400); // let the screen fade-in finish
+      const ow3 = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+      if (ow3) { failures++; console.log(`✗ ${scheme}/${size.name}/lesson${l} table: overflow`); }
+      await page.screenshot({ path: `layout-shots/${scheme}-${size.name}-lesson${l}-table.png`, fullPage: true });
+    }
 
     // Glossary sheet from a lesson link.
     await page.goto(base + '#/lesson/1');

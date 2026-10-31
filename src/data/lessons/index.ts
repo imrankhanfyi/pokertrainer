@@ -11,7 +11,13 @@ export type Block =
   | { t: 'table'; highlight?: Pos[]; caption?: string; zones?: boolean }
   | { t: 'cards'; cards: string; caption: string }
   | { t: 'chart'; situation: Situation; caption?: string }
-  | { t: 'order'; caption?: string };
+  | { t: 'order'; caption?: string }
+  /** Hand + board diagram. If `villain` and `outs` are given, tests verify the outs count. */
+  | { t: 'spot'; hero: string; board: string; villain?: string; outs?: number; caption: string }
+  /** Rule of 2 and 4 vs exact odds, computed live. */
+  | { t: 'oddsTable'; outs: number[] }
+  /** Price of a call for common bet sizes, computed live. */
+  | { t: 'potTable' };
 
 export interface Screen { title: string; blocks: Block[] }
 
@@ -26,14 +32,9 @@ export interface Lesson {
 
 import { lesson1 } from './lesson1';
 import { lesson2 } from './lesson2';
+import { lesson3 } from './lesson3';
+import { lesson4 } from './lesson4';
+import { lesson5 } from './lesson5';
+import { lesson6 } from './lesson6';
 
-const comingSoon = (id: number, title: string, summary: string): Lesson => ({ id, title, summary, skill: null, screens: [], available: false });
-
-export const LESSONS: Lesson[] = [
-  lesson1,
-  lesson2,
-  comingSoon(3, 'Outs and the rule of 2 and 4', 'Count the cards that help you and turn them into a percentage.'),
-  comingSoon(4, 'Pot odds', 'Is a call worth the price?'),
-  comingSoon(5, 'A default post-flop plan', 'Simple rules for the flop, turn and river.'),
-  comingSoon(6, 'Putting it together', 'Whole hands, one decision at a time.'),
-];
+export const LESSONS: Lesson[] = [lesson1, lesson2, lesson3, lesson4, lesson5, lesson6];

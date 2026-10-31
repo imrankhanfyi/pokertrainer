@@ -312,3 +312,12 @@ button.tile:active { transform: scale(0.985); }
 .btn svg, .verdict svg, .choice svg { width: 22px; height: 22px; flex: none; }
 .choices.settled { position: static; background: none; }
 .chev svg, .icon-btn svg { width: 22px; height: 22px; display: block; }
+
+/* Card rows for board-focused drills */
+.cards-view { display: flex; flex-direction: column; gap: 10px; background: var(--felt); border: 2px solid var(--felt-edge); border-radius: var(--radius); padding: 10px; margin: 8px 0; }
+.cv-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cv-label { width: 48px; flex: none; font-size: 13px; font-weight: 700; color: var(--ink-2); }
+.mini-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 15px; background: var(--surface); border-radius: 12px; overflow: hidden; border: 1px solid var(--line); }
+.mini-table th, .mini-table td { padding: 8px 6px; text-align: center; border-bottom: 1px solid var(--line); }
+.mini-table th { font-size: 13px; color: var(--ink-2); background: var(--surface-2); }
+.mini-table tr:last-child td { border-bottom: 0; }

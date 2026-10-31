@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { type Block, LESSONS } from '../data/lessons';
 import { type Pos, FORMAT_SHORT, positionsFor, postflopOrder, zoneOf } from '../data/positions';
 import { parseCards } from '../engine/cards';
+import { exactHitChance, potOdds, ruleOf2and4 } from '../engine/odds';
 import type { TableVisual } from '../engine/scenarios/types';
 import { Cards, Icon, Rich, TopBar } from '../ui/components';
 import { PokerTable } from '../ui/PokerTable';
@@ -50,6 +51,35 @@ function BlockView({ b }: { b: Block }) {
     case 'tip': return <div className="tip"><Rich text={b.text} /></div>;
     case 'list': return <ul className="lesson-list">{b.items.map((x, i) => <li key={i}><Rich text={x} /></li>)}</ul>;
     case 'format': return <div className="format-box"><div className="tiny">Showing: {FORMAT_SHORT[format]} (change on the Practice tab)</div><Rich text={format === 'fullring' ? b.fullring : b.sixmax} /></div>;
+    case 'spot': return (
+      <figure className="figure">
+        <div className="cards-view" style={{ textAlign: 'left' }}>
+          {b.villain && <div className="cv-row"><span className="cv-label">Them</span><Cards cards={parseCards(b.villain)} size="sm" /></div>}
+          <div className="cv-row"><span className="cv-label">Board</span><Cards cards={parseCards(b.board)} size="md" /></div>
+          <div className="cv-row"><span className="cv-label">You</span><Cards cards={parseCards(b.hero)} size="md" /></div>
+        </div>
+        <figcaption><Rich text={b.caption} /></figcaption>
+      </figure>
+    );
+    case 'oddsTable': return (
+      <table className="mini-table">
+        <thead><tr><th>Outs</th><th>Turn→river<br /><span className="tiny">×2 · exact</span></th><th>Flop→river<br /><span className="tiny">×4 · exact</span></th></tr></thead>
+        <tbody>{b.outs.map((o) => (
+          <tr key={o}><td><strong>{o}</strong></td>
+            <td>{ruleOf2and4(o, 1)}% · {(exactHitChance(o, 1) * 100).toFixed(1)}%</td>
+            <td>{ruleOf2and4(o, 2)}% · {(exactHitChance(o, 2) * 100).toFixed(1)}%</td></tr>
+        ))}</tbody>
+      </table>
+    );
+    case 'potTable': return (
+      <table className="mini-table">
+        <thead><tr><th>They bet</th><th>Example</th><th>You need</th></tr></thead>
+        <tbody>{([[1 / 3, '⅓ pot'], [1 / 2, '½ pot'], [2 / 3, '⅔ pot'], [3 / 4, '¾ pot'], [1, 'Pot']] as [number, string][]).map(([f, l]) => {
+          const p = potOdds(30, 30 * f);
+          return <tr key={l}><td><strong>{l}</strong></td><td>{30 * f}bb into 30bb</td><td><strong>{Math.round(p.requiredEquity * 100)}%</strong></td></tr>;
+        })}</tbody>
+      </table>
+    );
     case 'cards': return <figure className="figure"><Cards cards={parseCards(b.cards)} size="lg" /><figcaption>{b.caption}</figcaption></figure>;
     case 'chart': return <><RangeGrid format={format} situation={b.situation} />{b.caption && <div className="tiny" style={{ textAlign: 'center' }}>{b.caption}</div>}</>;
     case 'order': {

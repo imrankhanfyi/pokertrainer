@@ -3,9 +3,15 @@
 An iPhone-first practice app for the fundamentals of No-Limit Texas Hold’em.
 It's a static site with no backend and no accounts. It works offline, except for the optional “Explain more” button.
 
-**Status:**
-- Done: lessons 1–2 (table basics, starting hands), practice mode ("Mix it up" plus two skills), stats, settings, and "Explain more".
-- Not done yet: lessons 3–6 (outs, pot odds, post-flop plan, full hands). Their maths engine is already built and tested.
+**Status:** all six lessons and their drills are built:
+1. Table basics
+2. Starting hands
+3. Outs and the rule of 2 and 4
+4. Pot odds
+5. A default post-flop plan
+6. Full-hand walkthroughs
+
+Also built: practice mode with "Mix it up", stats, settings, and the optional "Explain more".
 
 ---
 
@@ -109,7 +115,8 @@ Content is kept as data, separate from the screens:
 | Starting-hand charts | `src/data/ranges/index.ts` (shorthand like `77+, ATs+, KQs`; the notes at the top explain the assumptions) |
 | Lessons | `src/data/lessons/` |
 | Glossary (tap-to-define words) | `src/data/glossary.ts`. In any text, write `[[key]]` or `[[key|shown words]]` |
-| Drill generators and built-in explanations | `src/engine/scenarios/` |
+| Drill generators and built-in explanations | `src/engine/scenarios/` (post-flop situations are hand-written templates in `postflop.ts`) |
+| Full-hand walkthroughs | `src/data/hands.ts` (tests check every card, chart answer, hand-strength claim, pot total and showdown) |
 
 **Where the ranges come from:**
 - They are a deliberately conservative composite in the style of widely taught beginner charts. They are not copied from one source and are not solver output.
@@ -121,6 +128,8 @@ Run `npm test` after editing ranges. The tests catch typos, any overlap between 
 **How the drill numbers are checked:**
 - Outs are counted by trying every unseen card against the opponent's hand, so a combo draw comes out at 15 outs, not 17, and "dirty" outs are excluded.
 - Equities are computed exactly and cross-checked against a Monte Carlo simulation in the tests.
+- Pot-odds drills are thrown away if the rule-of-thumb estimate, the exact hit chance and the true equity against the opponent's actual cards don't all agree on the answer.
+- Every outs claim in the lesson examples is re-counted by the tests.
 - A test plays all 2,598,960 five-card hands through the hand evaluator and checks the textbook totals.
 
 ## Tech
