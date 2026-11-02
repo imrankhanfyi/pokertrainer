@@ -45,8 +45,12 @@ export function Practice({ skill }: { skill: SkillId | 'mix' }) {
   const [answer, setAnswer] = useState<string | null>(null);
   const [session, setSession] = useState({ n: 0, right: 0 });
   const [explaining, setExplaining] = useState(false);
+  const [thought, setThought] = useState('');
+  const [askedWhy, setAskedWhy] = useState<string | undefined>(undefined);
   const fbRef = useRef<HTMLDivElement>(null);
-  const hasKey = !!getApiKey();
+  const provider = state.settings.provider;
+  const hasKey = !!getApiKey(provider);
+  const aiModel = provider === 'gemini' ? state.settings.geminiModel : state.settings.model;
 
   const title = skill === 'mix' ? 'Mix it up' : SKILLS.find((s) => s.id === skill)!.title;
 
@@ -65,6 +69,8 @@ export function Practice({ skill }: { skill: SkillId | 'mix' }) {
   const goNext = () => {
     setAnswer(null);
     setExplaining(false);
+    setThought('');
+    setAskedWhy(undefined);
     setQ(q.followUp ?? next(format));
     window.scrollTo({ top: 0 });
   };
@@ -128,9 +134,18 @@ export function Practice({ skill }: { skill: SkillId | 'mix' }) {
               {q.closeNote && <div className="note"><b>{q.close ? 'Close call · ' : 'Note · '}</b><Rich text={q.closeNote} /></div>}
               <div style={{ marginTop: 12 }}>
                 {hasKey ? (
-                  <button className="btn small ghost" onClick={() => setExplaining(true)} style={{ paddingLeft: 0 }}>{Icon.spark} Explain more</button>
+                  <>
+                    {!ok && (
+                      <form className="why-form" onSubmit={(e) => { e.preventDefault(); if (thought.trim()) { setAskedWhy(thought.trim()); setExplaining(true); } }}>
+                        <label className="tiny" htmlFor="why">What were you thinking? Tell the coach and it’ll explain where it goes wrong.</label>
+                        <textarea id="why" className="input" rows={2} maxLength={300} value={thought} onChange={(e) => setThought(e.target.value)} placeholder="e.g. I thought the button acts first because it’s the dealer" />
+                        <button className="btn small primary" disabled={!thought.trim()}>{Icon.spark} Why isn’t that right?</button>
+                      </form>
+                    )}
+                    <button className="btn small ghost" onClick={() => { setAskedWhy(undefined); setExplaining(true); }} style={{ paddingLeft: 0 }}>{Icon.spark} Explain more</button>
+                  </>
                 ) : (
-                  <div className="tiny">Want a deeper explanation? Add an OpenAI key in Settings to enable “Explain more”.</div>
+                  <div className="tiny">Want a deeper explanation, or to ask why your answer was wrong? Add a free Google Gemini key (or an OpenAI key) in Settings.</div>
                 )}
               </div>
             </div>
@@ -156,7 +171,9 @@ export function Practice({ skill }: { skill: SkillId | 'mix' }) {
           q={q}
           yourAnswer={yours ? `${yours.label}${yours.sub ? ` ${yours.sub}` : ''}` : answer}
           recommended={recText}
-          model={state.settings.model}
+          provider={provider}
+          model={aiModel}
+          reasoning={askedWhy}
           onClose={() => setExplaining(false)}
         />
       )}

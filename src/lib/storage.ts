@@ -1,11 +1,16 @@
 import type { Format } from '../data/positions';
 import type { SkillId } from '../engine/scenarios/types';
+import type { Provider } from './openai';
 
 export const STATE_KEY = 'holdem-coach:state:v1';
 /** The API key lives under its own key and is never part of the state object or backups. */
 export const API_KEY_KEY = 'holdem-coach:openai-key';
+export const GEMINI_KEY_KEY = 'holdem-coach:gemini-key';
+const KEY_FOR: Record<Provider, string> = { openai: API_KEY_KEY, gemini: GEMINI_KEY_KEY };
 
 export const DEFAULT_MODEL = 'gpt-6-luna';
+/** Google's recommended Flash-Lite on 2026-11-02; free tier available. */
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash-lite';
 
 export interface SkillStats { seen: number; correct: number; recent: number[] /* 1 = right, last 20 */ }
 
@@ -13,7 +18,10 @@ export interface Settings {
   format: Format;
   fourColor: boolean;
   theme: 'system' | 'light' | 'dark';
+  /** OpenAI model name. */
   model: string;
+  provider: Provider;
+  geminiModel: string;
 }
 
 export interface AppState {
@@ -25,7 +33,7 @@ export interface AppState {
 
 export const defaultState = (): AppState => ({
   version: 1,
-  settings: { format: 'fullring', fourColor: false, theme: 'system', model: DEFAULT_MODEL },
+  settings: { format: 'fullring', fourColor: false, theme: 'system', model: DEFAULT_MODEL, provider: 'openai', geminiModel: DEFAULT_GEMINI_MODEL },
   stats: {},
   lessons: {},
 });
@@ -60,6 +68,8 @@ export function normalise(x: unknown): AppState {
       fourColor: !!st.fourColor,
       theme: st.theme === 'light' || st.theme === 'dark' ? st.theme : 'system',
       model: typeof st.model === 'string' && st.model.trim() ? st.model.trim() : DEFAULT_MODEL,
+      provider: st.provider === 'gemini' ? 'gemini' : 'openai',
+      geminiModel: typeof st.geminiModel === 'string' && st.geminiModel.trim() ? st.geminiModel.trim() : DEFAULT_GEMINI_MODEL,
     },
     stats: Object.fromEntries(
       Object.entries(src.stats ?? {}).map(([k, v]) => [k, {
@@ -95,8 +105,20 @@ export function mixWeights(s: AppState, skills: SkillId[]): Record<SkillId, numb
   return out;
 }
 
-// ---- API key: device-only ----
-export const getApiKey = (): string | null => safeGet(API_KEY_KEY);
-export const setApiKey = (k: string) => safeSet(API_KEY_KEY, k.trim());
-export const removeApiKey = () => { try { localStorage.removeItem(API_KEY_KEY); } catch { /* ignore */ } };
+// ---- API keys: device-only, one per provider, never part of the state object ----
+export const getApiKey = (p: Provider = 'openai'): string | null => safeGet(KEY_FOR[p]);
+export const setApiKey = (k: string, p: Provider = 'openai') => safeSet(KEY_FOR[p], k.trim());
+export const removeApiKey = (p: Provider = 'openai') => { try { localStorage.removeItem(KEY_FOR[p]); } catch { /* ignore */ } };
+
+/** Ask the browser not to evict our storage under pressure (best effort; harmless if refused). */
+export function requestPersistentStorage() {
+  try { void navigator.storage?.persist?.().catch(() => undefined); } catch { /* unsupported */ }
+}
+
+/** True when running from the iPhone home screen (or as an installed app elsewhere). */
+export function isInstalledApp(): boolean {
+  try {
+    return (navigator as Navigator & { standalone?: boolean }).standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+  } catch { return false; }
+}
 export const maskKey = (k: string) => (k.length <= 8 ? '••••' : `${k.slice(0, 3)}••••••••${k.slice(-4)}`);

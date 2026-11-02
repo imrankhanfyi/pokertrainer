@@ -77,32 +77,43 @@ To publish changes later, run `git add -A && git commit -m "…" && git push`. E
 
 ## 4. Turn on “Explain more” (optional)
 
-“Explain more” sends the current hand to OpenAI and shows a short, beginner-friendly explanation. You can ask up to two follow-up questions. Everything else in the app works without it.
+“Explain more” sends the current hand to an AI and shows a short, beginner-friendly explanation. You can ask up to two follow-up questions. When you get an answer wrong, you can also type **what you were thinking**; the coach responds to your reasoning and points to where it goes wrong. Everything else in the app works without AI.
 
-1. **Make a key just for this app.** Go to [platform.openai.com/api-keys](https://platform.openai.com/api-keys) and click **Create new secret key**. Name it `holdem-coach`. If you're offered a project, a dedicated one is best. Copy the key; it starts with `sk-`.
-2. **Set a spending limit first.** In the OpenAI dashboard, go to **Settings → Limits** (or **Billing → Usage limits**) and set a low monthly budget, for example $5. OpenAI's dashboard labels change from time to time, so look for “limits” or “budget” if those names differ. Each explanation costs a fraction of a cent with the default model, so $5 is plenty. The limit is your safety net if the key ever leaks.
-3. In the **installed** app, open **Settings → “Explain more” → OpenAI API key**, paste the key and tap **Save key**.
-4. Optionally tap **Check** next to the model name to confirm your key can use it.
+Pick a provider in **Settings → “Explain more” → AI provider**. Each provider's key is stored separately.
 
-**How the key is handled:**
-- It is stored only in this app's storage on this device.
-- It is only ever sent to `api.openai.com`.
-- It is never in the code, the build or git, and it is never included in backups.
-- The screen shows it masked.
-- **Remove key** deletes it.
-- If you think it has leaked, delete it on the OpenAI keys page; that disables it immediately.
+### Option A: Google Gemini (free)
 
-**Model:**
-- The default is `gpt-6-luna`. On 2026-10-31, OpenAI's models page listed it as the cheapest current model, at $0.10 / $0.50 per million input/output tokens.
-- Answers are capped at about 350 tokens.
-- You can change the model name in Settings. If OpenAI retires a model, the app tells you to change it.
+1. Go to [aistudio.google.com/apikey](https://aistudio.google.com/apikey), sign in with your Google account, and create an API key. No card or billing is needed for the free tier. The key starts with `AIza`.
+2. In the **installed** app, choose **Gemini (free)**, paste the key and tap **Save key**.
+3. Optionally tap **Check** next to the model name.
+
+Notes (from Google's pricing and models pages, checked 2026-11-02):
+- The default model is `gemini-3.5-flash-lite`, Google's recommended Flash-Lite model. It is free of charge on the free tier.
+- On the free tier, Google says your prompts are “used to improve our products”. Here that's only the poker hand and your question.
+- Free-tier rate limits are shown only in AI Studio. If you hit one, the app says so; wait a minute, or try again tomorrow.
+- If billing is never turned on, nothing can be charged.
+
+### Option B: OpenAI (pay as you go)
+
+1. **Make a key just for this app.** Go to [platform.openai.com/api-keys](https://platform.openai.com/api-keys) and click **Create new secret key**. Name it `holdem-coach`. Copy the key; it starts with `sk-`.
+2. **Set a spending limit first.** In the OpenAI dashboard, go to **Settings → Limits** (or **Billing → Usage limits**) and set a low monthly budget, for example $5.
+3. In the **installed** app, choose **OpenAI**, paste the key and tap **Save key**.
+4. The default model is `gpt-6-luna`. On 2026-10-31, OpenAI's models page listed it as the cheapest current model, at $0.10 / $0.50 per million input/output tokens. Answers are capped at about 350 tokens.
+
+**How keys are handled:**
+- Each key is stored only in this app's storage on this device.
+- The Gemini key is only ever sent to `generativelanguage.googleapis.com`. The OpenAI key is only ever sent to `api.openai.com`.
+- Keys are never in the code, the build or git, and never included in backups.
+- The screen shows a key masked, and **Remove key** deletes it.
+- If you think a key has leaked, delete it on the provider's keys page; that disables it immediately.
 
 ---
 
 ## 5. Your data
 
-- **Settings → Export backup** downloads a `.json` file with your progress and settings. It does not include the API key. **Import backup** restores one.
-- **Reset progress** wipes stats and lesson progress. Your key stays until you remove it.
+- **Settings → Export backup** downloads a `.json` file with your progress and settings. It does not include API keys. **Import backup** restores one.
+- **Reset progress** wipes stats and lesson progress. Your keys stay until you remove them.
+- On iPhone, the home-screen app and a Safari tab keep **separate** progress. When the app is open in a browser tab, Progress and Settings show a reminder. To move progress between them, export a backup in one and import it in the other. Deleting the home-screen icon can delete its progress too, so export a backup first.
 
 ---
 

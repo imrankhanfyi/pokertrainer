@@ -48,7 +48,14 @@ const nameMySeat: Gen = (format, rng) => {
     correct: hero,
     close: false,
     explanation: `${explain[hero]}${toRight > 0 && toRight <= 3 && hero !== 'BTN' ? ` You are ${toRight} seat${toRight > 1 ? 's' : ''} to the right of the button.` : ''}`,
-    facts: { question: 'Identify my position from the seat and the dealer button', players: String(players), answer: hero },
+    facts: {
+      question: 'Identify my position from the seat and the dealer button',
+      players: String(players),
+      seats_in_preflop_action_order: order.join(' > '),
+      button_is: 'the dealer seat; SB is directly to its left, BB two seats left',
+      my_seat_relative_to_button: toRight === 0 ? 'I am on the button' : toRight <= order.length - toRight ? `${toRight} seat${toRight > 1 ? 's' : ''} to the right of the button` : `${order.length - toRight} seat${order.length - toRight > 1 ? 's' : ''} to the left of the button`,
+      answer: hero,
+    },
   };
 };
 

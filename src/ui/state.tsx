@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { type AppState, loadState, saveState } from '../lib/storage';
+import { type AppState, loadState, requestPersistentStorage, saveState } from '../lib/storage';
 
 interface Ctx {
   state: AppState;
@@ -12,6 +12,7 @@ const StateCtx = createContext<Ctx | null>(null);
 export function StateProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(() => loadState());
   useEffect(() => saveState(state), [state]);
+  useEffect(() => requestPersistentStorage(), []);
   useEffect(() => {
     const root = document.documentElement;
     if (state.settings.theme === 'system') root.removeAttribute('data-theme');

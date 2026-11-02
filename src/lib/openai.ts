@@ -17,12 +17,13 @@ Rules:
 - Base the explanation on beginner-friendly fundamentals (position, hand strength, simple maths), not solver jargon.
 - If the decision is close or depends on the opponents, say so briefly.
 - If you genuinely believe the app's answer is wrong, still explain the app's reasoning, then add one final line starting with "Note:" saying plainly what you disagree with and why. This helps the student spot errors in the app. Do not add a Note otherwise.
+- If the student tells you what they were thinking, respond to THEIR reasoning first: say briefly what is right about it (if anything), then point to the exact step where it goes wrong, using this hand's facts. Do not just repeat the general explanation.
 - Keep it short: at most about 120 words. No headings. Use at most 3 bullet points.
 - For follow-up questions, answer only about this scenario and stay brief.`;
 
 export interface ChatMsg { role: 'user' | 'assistant'; content: string }
 
-export function scenarioMessage(facts: Record<string, string>, extra: { yourAnswer: string; recommended: string; explanation: string; closeNote?: string }): string {
+export function scenarioMessage(facts: Record<string, string>, extra: { yourAnswer: string; recommended: string; explanation: string; closeNote?: string; reasoning?: string }): string {
   const lines = Object.entries(facts).filter(([, v]) => v).map(([k, v]) => `- ${k.replace(/_/g, ' ')}: ${v}`);
   const strip = (s: string) => s.replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, '$2').replace(/\[\[([^\]]+)\]\]/g, '$1').replace(/\*\*/g, '');
   return [
@@ -33,7 +34,9 @@ export function scenarioMessage(facts: Record<string, string>, extra: { yourAnsw
     `- app's explanation: ${strip(extra.explanation)}`,
     extra.closeNote ? `- app's note: ${strip(extra.closeNote)}` : '',
     '',
-    'Please explain the recommended answer in a bit more depth for a beginner.',
+    extra.reasoning?.trim()
+      ? `I chose "${extra.yourAnswer}" because: "${extra.reasoning.trim()}". Why isn't that right here?`
+      : 'Please explain the recommended answer in a bit more depth for a beginner.',
   ].filter((l) => l !== '').join('\n');
 }
 
@@ -55,20 +58,34 @@ export class ExplainError extends Error {
   constructor(public kind: ErrorKind, message: string) { super(message); }
 }
 
-export const ERROR_TEXT: Record<ErrorKind, string> = {
-  'no-key': 'Add your OpenAI API key in Settings to use Explain more.',
-  offline: 'You’re offline. Explain more needs a connection – everything else works offline.',
-  timeout: 'OpenAI took too long to answer. Try again in a moment.',
-  auth: 'OpenAI rejected the API key. Check it in Settings (it may have been revoked).',
-  quota: 'Your OpenAI account is out of credit or hit its spending limit. Check your billing page.',
-  rate: 'Too many requests right now. Wait a few seconds and try again.',
-  model: 'That model name isn’t available to your key. Change it in Settings.',
-  server: 'OpenAI had a problem. Try again shortly.',
-  'bad-request': 'OpenAI couldn’t process the request.',
-  rejected: 'OpenAI turned the request down and the browser couldn’t read why. Your key works, so check the model name in Settings (tap Check) and your spending limit.',
-  empty: 'The answer came back empty. Try again, or try a different model in Settings.',
-  unknown: 'Something went wrong talking to OpenAI.',
-};
+export type Provider = 'openai' | 'gemini';
+export const PROVIDER_NAME: Record<Provider, string> = { openai: 'OpenAI', gemini: 'Google Gemini' };
+
+export function errorText(kind: ErrorKind, provider: Provider = 'openai'): string {
+  const P = provider === 'gemini' ? 'Google' : 'OpenAI';
+  const t: Record<ErrorKind, string> = {
+    'no-key': `Add your ${PROVIDER_NAME[provider]} API key in Settings to use Explain more.`,
+    offline: 'You’re offline. Explain more needs a connection – everything else works offline.',
+    timeout: `${P} took too long to answer. Try again in a moment.`,
+    auth: `${P} rejected the API key. Check it in Settings (it may have been deleted or mistyped).`,
+    quota: 'Your OpenAI account is out of credit or hit its spending limit. Check your billing page.',
+    rate: provider === 'gemini'
+      ? 'Google’s free limit was reached (too many requests per minute, or for today). Wait a minute, or try again tomorrow.'
+      : 'Too many requests right now. Wait a few seconds and try again.',
+    model: 'That model name isn’t available to your key. Change it in Settings.',
+    server: `${P} had a problem. Try again shortly.`,
+    'bad-request': `${P} couldn’t process the request.`,
+    rejected: 'OpenAI turned the request down and the browser couldn’t read why. Your key works, so check the model name in Settings (tap Check) and your spending limit.',
+    empty: 'The answer came back empty. Try again, or try a different model in Settings.',
+    unknown: `Something went wrong talking to ${P}.`,
+  };
+  return t[kind];
+}
+
+/** OpenAI wording, kept for existing callers. */
+export const ERROR_TEXT = Object.fromEntries(
+  (['no-key', 'offline', 'timeout', 'auth', 'quota', 'rate', 'model', 'server', 'bad-request', 'rejected', 'empty', 'unknown'] as ErrorKind[]).map((k) => [k, errorText(k, 'openai')]),
+) as Record<ErrorKind, string>;
 
 interface ApiErrorBody { error?: { message?: string; code?: string; type?: string; param?: string } }
 

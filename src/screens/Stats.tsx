@@ -1,6 +1,8 @@
 import { LESSONS } from '../data/lessons';
 import { SKILLS } from '../engine/scenarios/types';
+import { isInstalledApp } from '../lib/storage';
 import { useApp } from '../ui/state';
+import { StorageNote } from './Settings';
 
 export function Stats() {
   const { state } = useApp();
@@ -8,6 +10,7 @@ export function Stats() {
     <div className="screen">
       <h1>Progress</h1>
       <p className="muted">Just for you – no streaks, no pressure.</p>
+      {!isInstalledApp() && <StorageNote />}
       <div className="card-section">
         {SKILLS.map((s) => {
           const st = state.stats[s.id];
