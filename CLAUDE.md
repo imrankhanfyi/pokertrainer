@@ -34,11 +34,7 @@ User-facing setup, deploy and content-editing docs are in `README.md`. This file
   - The layout check needs the Playwright WebKit browser: `npx playwright install webkit`, ~300 MB. The user's disk is tight, so delete `~/Library/Caches/ms-playwright` and `layout-shots/` afterwards.
 
 ## Where to pick up (as of 2026-11-02)
-1. **Gemini's success path is untested.** No real key was available; only the bad-key path was verified against Google's live server. Ask the user to:
-   - paste a free key from aistudio.google.com/apikey into the home-screen app
-   - tap Check, then try the "What were you thinking?" box
-
-   If Google rejects the request body, check `buildGeminiRequest`. It deliberately sends no `thinkingConfig`, and `maxOutputTokens` is 1024 because thinking tokens count toward it.
+1. **Gemini works end to end.** On 2026-11-02 the user confirmed on iPhone that a real free key, Check and the "Why isn't that right?" box all work.
 2. **The progress-loss report is unconfirmed.** The user was asked whether they practised in Safari and then checked the home-screen app, or re-added the icon. Follow up if it recurs inside the installed app.
 3. **Deploy warnings:** the GitHub Actions in `deploy.yml` (checkout, setup-node, upload-artifact and deploy-pages, all @v4) are flagged as Node-20-deprecated, and ubuntu-latest is moving to 26. Bump them when convenient.
 4. **Optional:** connect Netlify (see README §2B).
