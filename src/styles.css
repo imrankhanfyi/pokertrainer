@@ -407,3 +407,23 @@ textarea.input { resize: vertical; font-family: inherit; color: inherit; line-he
 .grid13.mini span.call { background: repeating-linear-gradient(135deg, var(--accent-soft) 0 4px, color-mix(in srgb, var(--accent) 35%, var(--surface)) 4px 6px); color: var(--ink); }
 .grid13.mini span.sel { outline: 2px solid var(--warn); outline-offset: -2px; position: relative; z-index: 1; }
 .legend i.you { background: none; border: 2px solid var(--warn); }
+
+/* pot-odds "why": slice of the pot + play-it-N-times tiles */
+.wk-ruler { position: relative; height: 22px; margin-top: 3px; }
+.wk-tick { position: absolute; top: 0; transform: translateX(-50%); font-size: 10.5px; color: var(--ink-2); display: flex; flex-direction: column; align-items: center; opacity: 0.8; }
+.wk-tick:first-child { transform: none; align-items: flex-start; }
+.wk-tick:last-child { transform: translateX(-100%); align-items: flex-end; }
+.wk-tick i { display: block; width: 1px; height: 6px; background: var(--ink-2); }
+.wk-tick:first-child i { margin-left: 0; }
+.wk-tick:last-child i { margin-left: 0; }
+.wk-bracket { box-sizing: border-box; min-width: 0; margin-top: 2px; border: 2px solid var(--accent); border-top: 0; border-radius: 0 0 6px 6px; height: 8px; position: relative; }
+.wk-bracket span { position: absolute; left: 0; top: 10px; white-space: nowrap; font-size: 12.5px; font-weight: 800; color: var(--accent); }
+.wk-slice .wk-legend { margin-top: 24px; }
+.wk-tilerow { display: flex; gap: 4px; }
+.wk-tile { flex: 1 1 0; min-width: 0; border-radius: 8px; padding: 6px 2px; text-align: center; display: flex; flex-direction: column; gap: 1px; font-size: 11px; }
+.wk-tile b { font-size: 14px; font-weight: 800; }
+.wk-tile.win { background: var(--good-soft); color: var(--good); border: 1px solid var(--good); }
+.wk-tile.lose { background: var(--bad-soft); color: var(--bad); border: 1px solid var(--bad); }
+.wk-tile-sum { margin-top: 6px; font-size: 13.5px; color: var(--ink-2); }
+.wk-tile-sum b { color: var(--ink); }
+.figure .wk-visual { text-align: left; }

@@ -1,6 +1,6 @@
 import type { Pos } from '../positions';
 import type { Situation } from '../ranges';
-import type { SkillId } from '../../engine/scenarios/types';
+import type { SkillId, WorkingVisual } from '../../engine/scenarios/types';
 
 /** Text may contain [[glossary-key]] or [[glossary-key|shown text]] and **bold**. */
 export type Block =
@@ -17,7 +17,9 @@ export type Block =
   /** Rule of 2 and 4 vs exact odds, computed live. */
   | { t: 'oddsTable'; outs: number[] }
   /** Price of a call for common bet sizes, computed live. */
-  | { t: 'potTable' };
+  | { t: 'potTable' }
+  /** A working visual (e.g. slice of the pot) with an optional caption. */
+  | { t: 'visual'; visual: WorkingVisual; caption?: string };
 
 export interface Screen { title: string; blocks: Block[] }
 

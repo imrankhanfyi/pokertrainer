@@ -113,7 +113,11 @@ export type WorkingVisual =
   /** A stacked chip bar, e.g. pot + their bet + your call. `mine` marks your share. Amounts in bb. */
   | { kind: 'chips'; parts: { label: string; bb: number; mine?: boolean }[] }
   /** A 0–100% bar with a "need" line, optionally a "have" fill. Values are percentages 0–100. */
-  | { kind: 'bars'; need: number; have?: number; needLabel?: string; haveLabel?: string };
+  | { kind: 'bars'; need: number; have?: number; needLabel?: string; haveLabel?: string }
+  /** The final pot as one bar: YOUR call first (accent), the others after it, with a 0–100% ruler. `pct` = mine ÷ total, rounded. Amounts in bb. */
+  | { kind: 'slice'; mine: number; others: { label: string; bb: number }[]; pct: number }
+  /** "Play it n times": one winning tile (+win) and n−1 losing tiles (−lose). Amounts in bb. */
+  | { kind: 'tiles'; n: number; win: number; lose: number };
 
 /** hero = you, about to act; acted = has acted and is still in; folded = out of the hand (this street or earlier); waiting = still to act after you. */
 export type OrderStatus = 'hero' | 'acted' | 'folded' | 'waiting';

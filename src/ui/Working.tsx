@@ -62,8 +62,58 @@ function BarsVisual({ v }: { v: Extract<WorkingVisual, { kind: 'bars' }> }) {
   );
 }
 
-function Visual({ v }: { v: WorkingVisual }) {
-  return v.kind === 'cards' ? <CardsVisual v={v} /> : v.kind === 'chips' ? <ChipsVisual v={v} /> : <BarsVisual v={v} />;
+function SliceVisual({ v }: { v: Extract<WorkingVisual, { kind: 'slice' }> }) {
+  const total = v.mine + v.others.reduce((s, p) => s + p.bb, 0) || 1;
+  const minePct = (v.mine / total) * 100;
+  return (
+    <div className="wk-visual wk-slice" role="img" aria-label={`Your ${fmt(v.mine)} out of a final pot of ${fmt(total)} is ${v.pct}%`}>
+      <div className="wk-stack">
+        <div className="wk-seg mine" style={{ flexGrow: v.mine, flexBasis: 0 }}><span className="wk-seg-n">{fmt(v.mine)}</span></div>
+        {v.others.map((p, i) => (
+          <div key={i} className="wk-seg" style={{ flexGrow: p.bb, flexBasis: 0 }}><span className="wk-seg-n">{fmt(p.bb)}</span></div>
+        ))}
+      </div>
+      <div className="wk-ruler" aria-hidden="true">
+        {[0, 25, 50, 75, 100].map((t) => (
+          <span key={t} className="wk-tick" style={{ left: `${t}%` }}><i />{t}%</span>
+        ))}
+      </div>
+      <div className="wk-bracket" aria-hidden="true" style={{ width: `${minePct}%` }}><span>Your {fmt(v.mine)} = {v.pct}%</span></div>
+      <div className="wk-legend">
+        <span className="mine"><i />Your call {fmt(v.mine)}</span>
+        {v.others.map((p, i) => <span key={i}><i />{p.label} {fmt(p.bb)}</span>)}
+        <b>= {fmt(total)}bb</b>
+      </div>
+    </div>
+  );
+}
+
+function TilesVisual({ v }: { v: Extract<WorkingVisual, { kind: 'tiles' }> }) {
+  const loses = v.n - 1;
+  const lost = loses * v.lose;
+  const verdict = Math.abs(v.win - lost) < 1e-9 ? 'exactly even' : 'about even';
+  return (
+    <div className="wk-visual wk-tiles" role="img" aria-label={`Play it ${v.n} times: win once +${fmt(v.win)}, lose ${loses} times −${fmt(v.lose)} each, ${verdict}`}>
+      <div className="wk-tilerow">
+        <div className="wk-tile win"><b>+{fmt(v.win)}</b><span>Win</span></div>
+        {Array.from({ length: loses }, (_, i) => (
+          <div key={i} className="wk-tile lose"><b>−{fmt(v.lose)}</b><span>Lose</span></div>
+        ))}
+      </div>
+      <div className="wk-tile-sum">+{fmt(v.win)} vs −{fmt(lost)} → <b>{verdict}</b></div>
+    </div>
+  );
+}
+
+/** One working visual; also used by lessons. */
+export function WorkingVisualView({ v }: { v: WorkingVisual }) {
+  switch (v.kind) {
+    case 'cards': return <CardsVisual v={v} />;
+    case 'chips': return <ChipsVisual v={v} />;
+    case 'bars': return <BarsVisual v={v} />;
+    case 'slice': return <SliceVisual v={v} />;
+    case 'tiles': return <TilesVisual v={v} />;
+  }
 }
 
 /** Step-by-step working: one step per tap, plus "Show all". */
@@ -76,7 +126,7 @@ export function Working({ steps }: { steps: WorkingStep[] }) {
       {steps.slice(0, shown).map((st, i) => (
         <div className="wk-step" key={i}>
           <div className="wk-text"><span className="wk-n">{i + 1}</span><span><Rich text={st.text} /></span></div>
-          {st.visual && <Visual v={st.visual} />}
+          {st.visual && <WorkingVisualView v={st.visual} />}
         </div>
       ))}
       {!done && (

@@ -6,6 +6,7 @@ import { exactHitChance, potOdds, ruleOf2and4 } from '../engine/odds';
 import type { TableVisual } from '../engine/scenarios/types';
 import { Cards, Icon, Rich, TopBar } from '../ui/components';
 import { PokerTable } from '../ui/PokerTable';
+import { WorkingVisualView } from '../ui/Working';
 import { RangeGrid } from '../ui/RangeGrid';
 import { back, useApp } from '../ui/state';
 import { FormatToggle } from './Home';
@@ -71,6 +72,7 @@ function BlockView({ b }: { b: Block }) {
         ))}</tbody>
       </table>
     );
+    case 'visual': return <figure className="figure"><WorkingVisualView v={b.visual} />{b.caption && <figcaption><Rich text={b.caption} /></figcaption>}</figure>;
     case 'potTable': return (
       <table className="mini-table">
         <thead><tr><th>They bet</th><th>Example</th><th>You need</th></tr></thead>

@@ -17,6 +17,16 @@ const FLOP_POTS: Record<Format, number[]> = {
   fullring: [7.5, 7.5, 10.5, 13.5, 16], // home games: lots of multiway, limped and iso-raised pots
   sixmax: [5.5, 5.5, 6.5, 8.5, 20],
 };
+/** Bet-size shortcut: fraction of the pot → words → % you need (100·f/(1+2f)). */
+export const SHORTCUTS: { f: number; words: string; label: string }[] = [
+  { f: 1 / 3, words: 'a third of the pot', label: 'Third-pot' },
+  { f: 1 / 2, words: 'half the pot', label: 'Half-pot' },
+  { f: 2 / 3, words: 'two-thirds of the pot', label: 'Two-thirds-pot' },
+  { f: 3 / 4, words: 'three-quarters of the pot', label: 'Three-quarter-pot' },
+  { f: 1, words: 'the size of the pot', label: 'Pot-sized' },
+];
+export const shortcutNeed = (f: number) => Math.round((100 * f) / (1 + 2 * f));
+const matchShortcut = (pot: number, bet: number) => SHORTCUTS.find((s) => Math.abs(bet / pot - s.f) <= 0.06);
 const BET_FRACTIONS: [number, string][] = [[1 / 3, 'a third of the pot'], [1 / 2, 'half the pot'], [2 / 3, 'two-thirds of the pot'], [3 / 4, 'three-quarters of the pot'], [1, 'the size of the pot']];
 
 export function potOddsQuestion(format: Format, rng: Rng = Math.random): Question {
@@ -76,8 +86,9 @@ export function potOddsQuestion(format: Format, rng: Rng = Math.random): Questio
     const base = { skill: 'potodds' as const, format, cardsView: { board: spot.board, hero: spot.hero } };
     const context = `${street === 'flop' ? 'Flop' : 'Turn'} · Pot ${bb(pot)} · They bet ${bb(bet)} · You have a ${name} (${n} outs)`;
 
+    const sc = matchShortcut(pot, bet);
     const workingStep2: WorkingStep[] = [
-      { text: `You need to win **${need}%** of the time to break even.`, visual: { kind: 'bars', need: needExact, needLabel: `Need ${need}%` } },
+      { text: `You need to win **${need}%** of the time to break even.${sc ? ` ${sc.label} bet → you need about ${shortcutNeed(sc.f)}%.` : ''}`, visual: { kind: 'bars', need: needExact, needLabel: `Need ${need}%` } },
       {
         text: cards === 2
           ? `${n} outs, two cards to come because they’re all-in → about **${estimate}%**.`
@@ -109,6 +120,29 @@ export function potOddsQuestion(format: Format, rng: Rng = Math.random): Questio
     };
 
     const total = po.totalAfterCall;
+    const step1Working: WorkingStep[] = [
+      {
+        text: `The pot is **${bb(pot)}** and they bet **${bb(bet)}**. Calling costs you **${bb(po.toCall)}**.`,
+        visual: { kind: 'chips', parts: [{ label: 'Pot', bb: pot }, { label: 'Their bet', bb: bet }, { label: 'Your call', bb: po.toCall, mine: true }] },
+      },
+      {
+        text: `After you call there’s **${bb(total)}** in the middle and **${bb(po.toCall)}** of it is yours. To get your share back you need to win **${need}%** of the time.`,
+        visual: { kind: 'slice', mine: po.toCall, others: [{ label: 'Pot', bb: pot }, { label: 'Their bet', bb: bet }], pct: need },
+      },
+    ];
+    const ratio = total / po.toCall;
+    const nTimes = Math.round(ratio);
+    if (nTimes >= 2 && nTimes <= 6 && Math.abs(ratio - nTimes) <= 0.15) {
+      step1Working.push({
+        text: `Check it: play this **${nTimes}** times. Win once and you collect **${bb(pot + bet)}**; lose the other ${nTimes - 1} and you pay **${bb((nTimes - 1) * po.toCall)}**. About even, so you need to win about **1 time in ${nTimes}**.`,
+        visual: { kind: 'tiles', n: nTimes, win: pot + bet, lose: po.toCall },
+      });
+    }
+    if (sc) {
+      step1Working.push({
+        text: `Shortcut: they bet about **${sc.words}** → you always need about **${shortcutNeed(sc.f)}%**. No dividing needed.`,
+      });
+    }
     const step1: Question = {
       ...base,
       id: qid(),
@@ -121,17 +155,8 @@ export function potOddsQuestion(format: Format, rng: Rng = Math.random): Questio
       correct: String(need),
       close: false,
       numeric: { unit: '%', min: Math.floor(needExact - 2), max: Math.ceil(needExact + 2), answerText: `${need}%`, placeholder: '%' },
-      working: [
-        {
-          text: `The pot is **${bb(pot)}** and they bet **${bb(bet)}**. Calling costs you **${bb(po.toCall)}**.`,
-          visual: { kind: 'chips', parts: [{ label: 'Pot', bb: pot }, { label: 'Their bet', bb: bet }, { label: 'Your call', bb: po.toCall, mine: true }] },
-        },
-        {
-          text: `You pay **${po.toCall}** to play for **${total}** → you need **${need}%**.`,
-          visual: { kind: 'bars', need: needExact, needLabel: `Need ${need}%` },
-        },
-      ],
-      explanation: `You put in ${bb(po.toCall)} to play for ${bb(total)}, so you need to win ${bb(po.toCall)} ÷ ${bb(total)} = ${need}% of the time.`,
+      working: step1Working,
+      explanation: `Your ${bb(po.toCall)} is ${need}% of the ${bb(total)} pot, so you need to win ${need}% of the time.`,
       facts: { ...facts, accepted_range: `${Math.floor(needExact - 2)}% to ${Math.ceil(needExact + 2)}%` },
       followUp: step2,
     };

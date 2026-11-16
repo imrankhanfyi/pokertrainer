@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-16 — v2.2
+- **Pot odds now show why the price is what it is.** In the drill and in Lesson 4, the working shows your call as a slice of the final pot (with a 0–100% ruler), then a "play it N times" check with win/lose tiles (only when the ratio is close to a whole number), then the bet-size shortcut (half pot → 25%, pot → 33%). The AI coach is told to explain it the same way. New `slice` and `tiles` working visuals and a lesson `visual` block.
+
 ## 2026-11-16 — v2.1
 - **In-app number pad for typed answers.** On iPhone, the system keyboard covered the sticky answer box, and scrolling to it pushed the cards off screen. Typed answers now use a built-in pad (1–6 / 7–0 ⌫, plus Check), so the keyboard never opens. On short screens (iPhone SE in Safari) the cards shrink and the outs summary line is hidden. `npm run layout` now fails if the cards and the pad aren't both fully visible.
 

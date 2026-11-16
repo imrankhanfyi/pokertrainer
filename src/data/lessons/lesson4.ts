@@ -11,8 +11,10 @@ export const lesson4: Lesson = {
       title: 'The price of a call',
       blocks: [
         { t: 'p', text: 'When someone bets, calling has a price. [[pot-odds|Pot odds]] turn that price into a percentage: how often you need to win for the call to break even.' },
-        { t: 'p', text: '**Price = your call ÷ (the pot + their bet + your call)**' },
-        { t: 'p', text: 'Example: the pot is 10bb and they bet 5bb. You call 5 to win 15. Your 5 out of a final pot of 20 = **25%**. If you win more than a quarter of the time, calling makes money in the long run.' },
+        { t: 'p', text: 'Example: the pot is **10bb** and they bet **5bb**. If you call 5, there’s **20** in the middle – and **5** of it is yours.' },
+        { t: 'visual', visual: { kind: 'slice', mine: 5, others: [{ label: 'Pot', bb: 10 }, { label: 'Their bet', bb: 5 }], pct: 25 }, caption: 'Your 5 is a quarter of the 20, so you need to win a quarter of the time: **25%**.' },
+        { t: 'visual', visual: { kind: 'tiles', n: 4, win: 15, lose: 5 }, caption: 'Why it works: play it 4 times. Win once and collect 15; lose three times and pay 5 each (15). Exactly even.' },
+        { t: 'p', text: '**Price = your call ÷ the total pot after you call.** If you win more often than that, calling makes money in the long run.' },
       ],
     },
     {
@@ -20,7 +22,7 @@ export const lesson4: Lesson = {
       blocks: [
         { t: 'p', text: 'Bets come in a few standard sizes, so you can learn the prices by heart instead of dividing at the table:' },
         { t: 'potTable' },
-        { t: 'tip', text: 'Bigger bets = worse price for you. A pot-sized bet means you need to win a third of the time.' },
+        { t: 'tip', text: 'Bigger bets = worse price for you. A pot-sized bet means you need to win a third of the time. The one to remember: **half the pot → 25%**.' },
       ],
     },
     {
