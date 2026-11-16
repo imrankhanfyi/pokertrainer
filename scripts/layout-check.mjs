@@ -39,10 +39,20 @@ const base = 'http://localhost:4317/';
 
 // Answer the current question: tap the first choice, or type a number for typed-answer questions.
 async function answer(page) {
-  const num = page.locator('.num-form input');
+  const num = page.locator('.numpad');
   const choice = page.locator('.choice').first();
   await Promise.race([num.waitFor(), choice.waitFor()]);
-  if (await num.isVisible()) { await num.fill('9'); await page.locator('.num-form button').click(); }
+  if (await num.isVisible()) {
+    await page.locator('.num-key', { hasText: '9' }).click();
+    // The cards and the answer box must both stay on screen while typing (iPhone keyboard bug, 2026-11-16).
+    const vis = await page.evaluate(() => {
+      const r = (sel) => document.querySelector(sel)?.getBoundingClientRect();
+      const cards = r('.cards-view'), disp = r('.num-display'), keys = r('.num-keys');
+      return !!cards && !!disp && !!keys && cards.top >= 0 && keys.bottom <= window.innerHeight && cards.bottom <= disp.top;
+    });
+    if (!vis) { failures++; console.log(`✗ ${page.viewportSize().width}px: cards and number pad not both visible`); }
+    await page.locator('.num-check').click();
+  }
   else await choice.click();
 }
 

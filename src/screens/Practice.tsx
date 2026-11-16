@@ -11,6 +11,7 @@ import { type Question, type SkillId, SKILLS, gradeAnswer } from '../engine/scen
 import { getApiKey, mixWeights, recordAnswer } from '../lib/storage';
 import { Cards, Icon, PlayingCard, Rich, TopBar } from '../ui/components';
 import { PokerTable } from '../ui/PokerTable';
+import { NumPad } from '../ui/NumPad';
 import { OrderOval } from '../ui/OrderOval';
 import { Working } from '../ui/Working';
 import { ChartAfterMiss } from '../ui/ChartAfterMiss';
@@ -48,7 +49,6 @@ export function Practice({ skill }: { skill: SkillId | 'mix' }) {
   const [answer, setAnswer] = useState<string | null>(null);
   const [session, setSession] = useState({ n: 0, right: 0 });
   const [typed, setTyped] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
   const [explaining, setExplaining] = useState(false);
   const [thought, setThought] = useState('');
   const [askedWhy, setAskedWhy] = useState<string | undefined>(undefined);
@@ -69,7 +69,6 @@ export function Practice({ skill }: { skill: SkillId | 'mix' }) {
 
   const submitTyped = () => {
     if (answer || !typed.trim()) return;
-    inputRef.current?.blur(); // closes the iPhone keyboard
     choose(typed.trim());
   };
 
@@ -105,7 +104,7 @@ export function Practice({ skill }: { skill: SkillId | 'mix' }) {
 
   return (
     <div className="screen no-tabs">
-      <div className="drill">
+      <div className="drill" data-skill={q.skill} data-typed={q.numeric && !answer ? '' : undefined}>
         <TopBar
           title={title}
           onBack={back}
@@ -174,25 +173,7 @@ export function Practice({ skill }: { skill: SkillId | 'mix' }) {
         <div className={`choices${three && !answer ? ' cols-3' : ''}${answer ? ' settled' : ''}`}>
           {!answer ? (
             q.numeric ? (
-              <form className="num-form" onSubmit={(e) => { e.preventDefault(); submitTyped(); }}>
-                <label className="num-field">
-                  <span className="sr-only" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>Your answer in {q.numeric.unit}</span>
-                  <input
-                    ref={inputRef}
-                    value={typed}
-                    onChange={(e) => setTyped(e.target.value.replace(q.numeric!.decimal ? /[^0-9.,]/g : /[^0-9]/g, ''))}
-                    onFocus={() => window.setTimeout(() => inputRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 250)}
-                    inputMode={q.numeric.decimal ? 'decimal' : 'numeric'}
-                    pattern={q.numeric.decimal ? '[0-9]*[.,]?[0-9]*' : '[0-9]*'}
-                    placeholder={q.numeric.placeholder ?? '0'}
-                    enterKeyHint="done"
-                    autoComplete="off"
-                    maxLength={6}
-                  />
-                  <span className="unit">{q.numeric.unit}</span>
-                </label>
-                <button type="submit" className="btn primary" disabled={!typed.trim()}>Check</button>
-              </form>
+              <NumPad value={typed} onChange={setTyped} onSubmit={submitTyped} unit={q.numeric.unit} placeholder={q.numeric.placeholder} />
             ) : q.choices.map((c) => (
               <button key={c.id} className="choice" onClick={() => choose(c.id)}>
                 <span>{c.label}</span>

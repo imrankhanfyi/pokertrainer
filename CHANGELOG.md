@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-16 — v2.1
+- **In-app number pad for typed answers.** On iPhone, the system keyboard covered the sticky answer box, and scrolling to it pushed the cards off screen. Typed answers now use a built-in pad (1–6 / 7–0 ⌫, plus Check), so the keyboard never opens. On short screens (iPhone SE in Safari) the cards shrink and the outs summary line is hidden. `npm run layout` now fails if the cards and the pad aren't both fully visible.
+
 ## 2026-11-16 — v2 (branch `v2`; spec in `docs/v2-spec.md`)
 - **Big-blind check bug fixed:** facing limpers, the big blind could be told to fold hands like K5s. Unlisted hands now default to check (chart-level `default`), with a regression test.
 - **New "Home 6" format (default):** 6-handed, loose-passive home game. Ranges cite Advanced Poker Training's "NL Hold'em Starting Hand Charts" (charts #1 and #3); deviations are listed in the `src/data/ranges/index.ts` header. The big-blind defence against a raise uses the 6-max range rather than the source's "pairs and AQ". Existing installs are switched to Home 6 once (state `version` 1 → 2).

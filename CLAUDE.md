@@ -36,7 +36,7 @@ User-facing setup, deploy and content-editing docs are in `README.md`. This file
   - The layout check needs the Playwright WebKit browser: `npx playwright install webkit`, ~300 MB. The user's disk is tight, so delete `~/Library/Caches/ms-playwright` and `layout-shots/` afterwards.
 
 ## Where to pick up (as of 2026-11-16)
-1. **v2 is deployed (2026-11-16).** The spec is `docs/v2-spec.md` and the changes are in `CHANGELOG.md`. Still to do: the user confirms on iPhone, especially that the keyboard doesn't hide the number box. Possible follow-ups: grade a near miss on a typed answer as a close call (e.g. 48% when 44% is expected); add the chips/bars pictures to full-hand steps that face a bet; add 6-seat full hands for Home 6.
+1. **v2 is deployed (2026-11-16).** The spec is `docs/v2-spec.md` and the changes are in `CHANGELOG.md`. Typed answers use the in-app `NumPad` (`src/ui/NumPad.tsx`), not the iPhone keyboard, which hid the answer box. Still to do: the user confirms the pad on iPhone. Possible follow-ups: grade a near miss on a typed answer as a close call (e.g. 48% when 44% is expected); add the chips/bars pictures to full-hand steps that face a bet; add 6-seat full hands for Home 6.
 2. **The progress-loss report is unconfirmed.** The user was asked whether they practised in Safari and then checked the home-screen app, or re-added the icon. Follow up if it recurs inside the installed app.
 3. **Deploy warnings:** the GitHub Actions in `deploy.yml` (checkout, setup-node, upload-artifact and deploy-pages, all @v4) are flagged as Node-20-deprecated, and ubuntu-latest is moving to 26. Bump them when convenient.
 4. **Optional:** connect Netlify (see README §2B).
