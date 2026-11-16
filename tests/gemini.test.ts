@@ -26,7 +26,7 @@ describe('provider settings and keys', () => {
     const s = defaultState();
     s.settings.provider = 'gemini';
     s.settings.geminiModel = 'gemini-2.5-flash-lite';
-    saveState(recordAnswer(s, 'positions', true));
+    saveState(recordAnswer(s, 'positions', 'right'));
     const back = loadState();
     expect(back.settings.provider).toBe('gemini');
     expect(back.settings.geminiModel).toBe('gemini-2.5-flash-lite');

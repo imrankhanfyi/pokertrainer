@@ -11,7 +11,7 @@ export function FormatToggle() {
       label="Table format"
       value={state.settings.format}
       onChange={(f) => update((s) => ({ ...s, settings: { ...s.settings, format: f } }))}
-      options={[{ id: 'fullring', label: 'Full ring · home game' }, { id: 'sixmax', label: '6-max · online' }]}
+      options={[{ id: 'home6', label: 'Home 6 · friends' }, { id: 'sixmax', label: '6-max · online' }, { id: 'fullring', label: 'Full ring · 9' }]}
     />
   );
 }

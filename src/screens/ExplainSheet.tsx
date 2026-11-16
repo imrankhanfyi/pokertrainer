@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Question } from '../engine/scenarios/types';
+import type { Grade, Question } from '../engine/scenarios/types';
 import { askAI } from '../lib/ai';
 import { type ChatMsg, type Provider, ExplainError, MAX_FOLLOW_UPS, errorText, scenarioMessage } from '../lib/openai';
 import { Sheet } from '../ui/components';
@@ -19,11 +19,11 @@ function Answer({ text }: { text: string }) {
   );
 }
 
-export function ExplainSheet({ q, yourAnswer, recommended, provider, model, reasoning, onClose }: { q: Question; yourAnswer: string; recommended: string; provider: Provider; model: string; reasoning?: string; onClose: () => void }) {
+export function ExplainSheet({ q, yourAnswer, recommended, provider, model, reasoning, grade, onClose }: { q: Question; yourAnswer: string; recommended: string; provider: Provider; model: string; reasoning?: string; grade?: Grade; onClose: () => void }) {
   const why = !!reasoning?.trim();
   // Separate cache slots so "Explain more" and "Why was I wrong?" on the same hand don't overwrite each other.
-  const cacheKey = `${q.id}:${why ? `why:${reasoning!.trim()}` : 'explain'}:${provider}`;
-  const first: ChatMsg = { role: 'user', content: scenarioMessage({ ...q.facts, skill: q.skill }, { yourAnswer, recommended, explanation: q.explanation, closeNote: q.closeNote, reasoning }) };
+  const cacheKey = `${q.id}:${grade ?? ''}:${yourAnswer}:${why ? `why:${reasoning!.trim()}` : 'explain'}:${provider}`;
+  const first: ChatMsg = { role: 'user', content: scenarioMessage({ ...q.facts, skill: q.skill }, { yourAnswer, recommended, explanation: q.explanation, closeNote: q.closeNote, reasoning, grade }) };
   const [msgs, setMsgs] = useState<ChatMsg[]>(() => cache.get(cacheKey) ?? [first]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -71,7 +71,7 @@ export function ExplainSheet({ q, yourAnswer, recommended, provider, model, reas
   const lastFailed = !loading && err && msgs[msgs.length - 1].role === 'user' && !['auth', 'model', 'no-key'].includes(errKind ?? '');
 
   return (
-    <Sheet title={why ? 'Why wasn’t that right?' : 'Explain more'} onClose={onClose}>
+    <Sheet title={why ? (grade === 'close' ? 'Why the other answer?' : 'Why wasn’t that right?') : 'Explain more'} onClose={onClose}>
       {shown.map((m, i) => (m.role === 'assistant' ? <Answer key={i} text={m.content} /> : <div key={i} className="chat-msg user">{m.content}</div>))}
       {loading && <div className="chat-msg assistant muted">Thinking…</div>}
       {truncated && !loading && <div className="tiny">Answer was cut short to keep costs low.</div>}

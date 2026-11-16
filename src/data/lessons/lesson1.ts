@@ -32,6 +32,7 @@ export const lesson1: Lesson = {
         { t: 'table', zones: true, caption: 'Early, middle and late positions.' },
         {
           t: 'format',
+          home6: 'At a **6-handed home game** there are six seats, the same as 6-max: UTG, HJ, CO, BTN, SB, BB. UTG is early, the hijack is middle, the cutoff and button are late. With fewer players than a full table, you can play a few more hands from every seat.',
           fullring: 'At a **full-ring** home game (8–9 players) there are extra early seats: UTG, UTG+1 and (with 9 players) UTG+2. Early = UTG to UTG+2, middle = LJ and HJ, late = CO and button.',
           sixmax: 'At a **6-max** table there are only six seats: UTG, HJ, CO, BTN, SB, BB. UTG is early, the hijack is middle, the cutoff and button are late. Fewer players means you can play more hands from every seat.',
         },

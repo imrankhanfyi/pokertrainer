@@ -13,10 +13,16 @@ export interface HandStepSpec {
   pot: number;
   facing?: number; // bet you must call
   story: string;
+  /** Seats still in the hand at this decision (you included), before you act. */
+  inHand: Pos[];
+  /** Seats among inHand that have already acted on this street (before you, or a bet/raise that you now face). */
+  acted: Pos[];
   prompt: string;
   choices: { id: string; label: string; sub?: string }[];
   correct: string;
   close?: boolean;
+  /** Choice ids that are a reasonable alternative (graded 'close'). */
+  closeAlternatives?: string[];
   explanation: string;
   closeNote?: string;
   /** What happens after the right action – shown before the next step. */
@@ -54,6 +60,7 @@ export const HANDS: HandSpec[] = [
       {
         street: 'preflop', board: '', pot: 3.5,
         story: 'Home game, 100bb stacks. UTG+1 and the lojack limp. It’s folded to you in the cutoff.',
+        inHand: ['UTG+1', 'LJ', 'CO', 'BTN', 'SB', 'BB'], acted: ['UTG+1', 'LJ'],
         prompt: 'You have A♠J♠. What do you do?',
         choices: [{ id: 'fold', label: 'Fold' }, { id: 'call', label: 'Call', sub: '1bb' }, { id: 'raise', label: 'Raise', sub: 'to 6bb' }],
         correct: 'raise',
@@ -65,9 +72,10 @@ export const HANDS: HandSpec[] = [
       {
         street: 'flop', board: 'Jd 7c 2h', pot: 14.5,
         story: 'UTG+1 checks to you.',
+        inHand: ['UTG+1', 'CO'], acted: ['UTG+1'],
         prompt: 'You have top pair, top kicker on a dry board. What do you do?',
         choices: [{ id: 'check', label: 'Check' }, { id: 'small', label: 'Bet small', sub: '5bb' }, { id: 'big', label: 'Bet big', sub: '9.5bb' }],
-        correct: 'big', close: true,
+        correct: 'big', close: true, closeAlternatives: ['small'],
         explanation: 'You very likely have the best hand, and a loose player who limp-calls will call with worse jacks, sevens and draws. Bet about two-thirds of the pot for [[value-bet|value]].',
         closeNote: 'On a board this dry a smaller bet is fine too. Checking is the only real mistake.',
         then: 'They call.',
@@ -77,6 +85,7 @@ export const HANDS: HandSpec[] = [
       {
         street: 'turn', board: 'Jd 7c 2h 4s', pot: 33.5,
         story: 'The 4♠ changes nothing. They check again.',
+        inHand: ['UTG+1', 'CO'], acted: ['UTG+1'],
         prompt: 'What now?',
         choices: [{ id: 'check', label: 'Check' }, { id: 'small', label: 'Bet small', sub: '11bb' }, { id: 'big', label: 'Bet big', sub: '22bb' }],
         correct: 'big',
@@ -88,9 +97,10 @@ export const HANDS: HandSpec[] = [
       {
         street: 'river', board: 'Jd 7c 2h 4s Kh', pot: 102.5, facing: 25,
         story: 'The river is the K♥. Your opponent, who has only called so far, now bets 25bb into 77.5bb.',
+        inHand: ['UTG+1', 'CO'], acted: ['UTG+1'],
         prompt: 'What do you do?',
         choices: [{ id: 'fold', label: 'Fold' }, { id: 'call', label: 'Call', sub: '25bb' }, { id: 'raise', label: 'All-in', sub: '62.5bb' }],
-        correct: 'call', close: true,
+        correct: 'call', close: true, closeAlternatives: ['fold'],
         explanation: 'When a passive player suddenly bets, the king may well have helped them. But the bet is small: you call 25bb to win 102.5bb, so you need to be right only about 20% of the time ([[pot-odds|pot odds]]). Call – don’t raise, because worse hands won’t call a raise and better ones will.',
         closeNote: 'Against a very tight, honest player who never bluffs, folding is understandable. The price makes calling the better default.',
         claim: 'one pair',
@@ -109,6 +119,7 @@ export const HANDS: HandSpec[] = [
       {
         street: 'preflop', board: '', pot: 4.5, facing: 3,
         story: 'Home game, 100bb stacks. Under the gun raises to 3bb. It’s folded to you in the hijack.',
+        inHand: ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'], acted: ['UTG'],
         prompt: 'You have 6♥6♣. What do you do?',
         choices: [{ id: 'fold', label: 'Fold' }, { id: 'call', label: 'Call', sub: '3bb' }, { id: 'raise', label: 'Re-raise', sub: 'to 9bb' }],
         correct: 'call',
@@ -120,9 +131,10 @@ export const HANDS: HandSpec[] = [
       {
         street: 'flop', board: 'Qs 6d 3c', pot: 16.5, facing: 6,
         story: 'UTG bets 6bb into 10.5bb. The button is still to act after you.',
+        inHand: ['UTG', 'HJ', 'BTN'], acted: ['UTG'],
         prompt: 'You flopped a set of sixes. What do you do?',
         choices: [{ id: 'fold', label: 'Fold' }, { id: 'call', label: 'Call', sub: '6bb' }, { id: 'raise', label: 'Raise', sub: 'to 18bb' }],
-        correct: 'raise', close: true,
+        correct: 'raise', close: true, closeAlternatives: ['call'],
         explanation: 'You have a monster. An early raiser on a queen-high board often has a big pair or a queen and will pay you. Raise for value now: it builds the pot while they still like their hand.',
         closeNote: 'Just calling to trap is OK on a board this dry, but raising is simpler and usually wins more against players who don’t fold top pair.',
         then: 'The button folds and UTG calls.',
@@ -132,6 +144,7 @@ export const HANDS: HandSpec[] = [
       {
         street: 'turn', board: 'Qs 6d 3c 9h', pot: 46.5,
         story: 'The 9♥ arrives. UTG checks.',
+        inHand: ['UTG', 'HJ'], acted: ['UTG'],
         prompt: 'What do you do?',
         choices: [{ id: 'check', label: 'Check' }, { id: 'small', label: 'Bet small', sub: '15bb' }, { id: 'big', label: 'Bet big', sub: '31bb' }],
         correct: 'big',
@@ -143,6 +156,7 @@ export const HANDS: HandSpec[] = [
       {
         street: 'river', board: 'Qs 6d 3c 9h 2d', pot: 108.5,
         story: 'The river is the 2♦. UTG checks. You have 48bb left in your stack.',
+        inHand: ['UTG', 'HJ'], acted: ['UTG'],
         prompt: 'What do you do?',
         choices: [{ id: 'check', label: 'Check' }, { id: 'small', label: 'Bet small', sub: '20bb' }, { id: 'allin', label: 'All-in', sub: '48bb' }],
         correct: 'allin',
@@ -163,6 +177,7 @@ export const HANDS: HandSpec[] = [
       {
         street: 'preflop', board: '', pot: 1.5,
         story: '6-max online, 100bb stacks. It’s folded to you on the button.',
+        inHand: ['BTN', 'SB', 'BB'], acted: [],
         prompt: 'You have K♦T♠. What do you do?',
         choices: [{ id: 'fold', label: 'Fold' }, { id: 'call', label: 'Limp', sub: '1bb' }, { id: 'raise', label: 'Raise', sub: 'to 2.5bb' }],
         correct: 'raise',
@@ -174,6 +189,7 @@ export const HANDS: HandSpec[] = [
       {
         street: 'flop', board: 'Ac 7d 2s', pot: 5.5,
         story: 'The big blind checks.',
+        inHand: ['BTN', 'BB'], acted: ['BB'],
         prompt: 'You missed. What do you do?',
         choices: [{ id: 'check', label: 'Check' }, { id: 'small', label: 'Bet small', sub: '2bb' }, { id: 'big', label: 'Bet big', sub: '3.5bb' }],
         correct: 'small',
@@ -185,6 +201,7 @@ export const HANDS: HandSpec[] = [
       {
         street: 'turn', board: 'Ac 7d 2s 8h', pot: 9.5,
         story: 'The 8♥. The big blind checks again.',
+        inHand: ['BTN', 'BB'], acted: ['BB'],
         prompt: 'You still have only king-high. What do you do?',
         choices: [{ id: 'check', label: 'Check' }, { id: 'small', label: 'Bet small', sub: '3bb' }, { id: 'big', label: 'Bet big', sub: '6.5bb' }],
         correct: 'check', close: true,
@@ -195,6 +212,7 @@ export const HANDS: HandSpec[] = [
       {
         street: 'river', board: 'Ac 7d 2s 8h 5c', pot: 13.5, facing: 4,
         story: 'The river is the 5♣. The big blind bets 4bb into 9.5bb.',
+        inHand: ['BTN', 'BB'], acted: ['BB'],
         prompt: 'You have king-high. What do you do?',
         choices: [{ id: 'fold', label: 'Fold' }, { id: 'call', label: 'Call', sub: '4bb' }, { id: 'raise', label: 'Raise', sub: 'to 12bb' }],
         correct: 'fold',
@@ -214,6 +232,7 @@ export const HANDS: HandSpec[] = [
       {
         street: 'preflop', board: '', pot: 4, facing: 1.5,
         story: '6-max online, 100bb stacks. The cutoff raises to 2.5bb; the button and small blind fold.',
+        inHand: ['CO', 'BB'], acted: ['CO'],
         prompt: 'You’re in the big blind with 9♥8♥. What do you do?',
         choices: [{ id: 'fold', label: 'Fold' }, { id: 'call', label: 'Call', sub: '1.5bb' }, { id: 'raise', label: 'Re-raise', sub: 'to 10bb' }],
         correct: 'call',
@@ -225,6 +244,7 @@ export const HANDS: HandSpec[] = [
       {
         street: 'flop', board: 'Kh 7h 2c', pot: 7, facing: 1.5,
         story: 'You check, and the cutoff bets 1.5bb into 5.5bb.',
+        inHand: ['CO', 'BB'], acted: ['CO'],
         prompt: 'You have a flush draw. What do you do?',
         choices: [{ id: 'fold', label: 'Fold' }, { id: 'call', label: 'Call', sub: '1.5bb' }, { id: 'raise', label: 'Raise', sub: 'to 5bb' }],
         correct: 'call',
@@ -237,6 +257,7 @@ export const HANDS: HandSpec[] = [
       {
         street: 'turn', board: 'Kh 7h 2c 3s', pot: 14.5, facing: 6,
         story: 'The 3♠ misses you. You check, and the cutoff bets 6bb into 8.5bb.',
+        inHand: ['CO', 'BB'], acted: ['CO'],
         prompt: 'Still a flush draw, one card to come. What do you do?',
         choices: [{ id: 'fold', label: 'Fold' }, { id: 'call', label: 'Call', sub: '6bb' }, { id: 'raise', label: 'Raise', sub: 'to 18bb' }],
         correct: 'fold',

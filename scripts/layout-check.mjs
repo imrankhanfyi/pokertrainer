@@ -36,6 +36,25 @@ const SMALL_OK = '.grid13 button, .gl, input.switch'; // switch: its whole row i
 mkdirSync('layout-shots', { recursive: true });
 const server = await preview({ preview: { port: 4317, strictPort: true }, logLevel: 'silent' });
 const base = 'http://localhost:4317/';
+
+// Answer the current question: tap the first choice, or type a number for typed-answer questions.
+async function answer(page) {
+  const num = page.locator('.num-form input');
+  const choice = page.locator('.choice').first();
+  await Promise.race([num.waitFor(), choice.waitFor()]);
+  if (await num.isVisible()) { await num.fill('9'); await page.locator('.num-form button').click(); }
+  else await choice.click();
+}
+
+// After feedback: reveal all working steps and expand the chart, so their layout gets checked too.
+async function expandFeedback(page) {
+  const all = page.getByRole('button', { name: /Show all/ });
+  if (await all.count()) await all.first().click();
+  const chart = page.getByRole('button', { name: /See the whole chart/ });
+  if (await chart.count()) await chart.first().click();
+  await page.waitForTimeout(500);
+}
+
 const browser = await webkit.launch();
 let failures = 0;
 const smallReport = new Map();
@@ -67,7 +86,7 @@ for (const scheme of ['light', 'dark']) {
 
     // End-to-end drill: answer → feedback → Explain more (mocked) → follow-up box.
     await page.goto(base + '#/practice/preflop');
-    await page.locator('.choice').first().click();
+    await answer(page);
     await page.locator('.feedback').waitFor();
     await page.waitForTimeout(400); // let the fade-in finish
     await page.screenshot({ path: `layout-shots/${scheme}-${size.name}-feedback.png`, fullPage: true });
@@ -91,12 +110,12 @@ for (const scheme of ['light', 'dark']) {
     await page.screenshot({ path: `layout-shots/${scheme}-${size.name}-chart.png`, fullPage: true });
 
     // Each new drill: answer once, screenshot feedback, follow any multi-step chain to the end.
-    for (const d of ['outs', 'potodds', 'postflop', 'fullhand']) {
+    for (const d of ['preflop', 'outs', 'potodds', 'postflop', 'fullhand']) {
       await page.goto(base + `#/practice/${d}`);
       for (let step = 0; step < 6; step++) {
-        await page.locator('.choice').first().click();
+        await answer(page);
         await page.locator('.feedback').waitFor();
-        await page.waitForTimeout(350);
+        await expandFeedback(page);
         const ow2 = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
         if (ow2) { failures++; console.log(`✗ ${scheme}/${size.name}/${d} step ${step}: overflow`); }
         await page.screenshot({ path: `layout-shots/${scheme}-${size.name}-${d}-fb${step}.png`, fullPage: true });

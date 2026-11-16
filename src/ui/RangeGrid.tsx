@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ALL_CLASSES, describeClass } from '../engine/cards';
-import { CHART_POS_LABEL, type ChartPos, type Format, chartPositions } from '../data/positions';
+import { CHART_POS_LABEL, type ChartPos, FORMAT_SHORT, type Format, chartPositions } from '../data/positions';
 import { type Situation, SITUATION_LABEL } from '../data/ranges';
 import { chartAction, getChart } from '../engine/preflop';
 import { Rich } from './components';
@@ -21,14 +21,15 @@ export function RangeGrid({ format, situation }: { format: Format; situation: Si
     let raise = 0, call = 0;
     for (const h of ALL_CLASSES) {
       const c = h.length === 2 ? 6 : h[2] === 's' ? 4 : 12;
-      if (chart.raise.has(h)) raise += c; else if (chart.call.has(h)) call += c;
+      const a = chartAction(chart, h);
+      if (a === 'raise') raise += c; else if (a === 'call') call += c;
     }
-    return { raise: Math.round((raise / 1326) * 100), call: Math.round((call / 1326) * 100) };
+    return { raise: Math.round((raise / 1326) * 100), call: Math.round((call / 1326) * 100), anyCall: call > 0, anyFold: raise + call < 1326 };
   })();
   const callWord = active === 'BB' && situation === 'limpers' ? 'Check' : ACTION_WORD[situation].call;
   return (
     <div className="figure" style={{ textAlign: 'left' }}>
-      <div className="tiny" style={{ marginBottom: 4 }}>{SITUATION_LABEL[situation]} · {format === 'fullring' ? 'Full ring' : '6-max'}</div>
+      <div className="tiny" style={{ marginBottom: 4 }}>{SITUATION_LABEL[situation]} · {FORMAT_SHORT[format]}</div>
       <div className="chips-scroll" role="group" aria-label="Seat">
         {seats.map((p) => (
           <button key={p} className="chip" aria-pressed={p === active} onClick={() => { setPos(p); }}>{CHART_POS_LABEL[p]}</button>
@@ -46,8 +47,8 @@ export function RangeGrid({ format, situation }: { format: Format; situation: Si
       </div>
       <div className="legend">
         <span><i className="raise" />{ACTION_WORD[situation].raise} · {pct.raise}%</span>
-        {chart.call.size > 0 && <span><i className="call" />{callWord} · {pct.call}%</span>}
-        <span><i />Fold</span>
+        {pct.anyCall && <span><i className="call" />{callWord} · {pct.call}%</span>}
+        {pct.anyFold && <span><i />Fold</span>}
       </div>
       <div className="small" style={{ minHeight: 24, textAlign: 'center' }} aria-live="polite">
         {sel ? (

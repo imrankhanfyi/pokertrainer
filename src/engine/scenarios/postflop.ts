@@ -5,11 +5,27 @@
  */
 import { type Card, FULL_DECK, type Rng, classOf, rankOf, rankValue, showCards, shuffled, suitOf } from '../cards';
 import { CATEGORY_NAME, Category, evaluate } from '../evaluator';
-import { type Format, FORMAT_SHORT, type Pos } from '../../data/positions';
+import { type Format, FORMAT_SHORT, type Pos, positionsFor, postflopOrder } from '../../data/positions';
 import { getChart } from '../preflop';
 import { classifyDraw } from './drawspot';
 import { improvingCards } from '../odds';
-import type { Choice, Question } from './types';
+import type { Choice, OrderView, Question } from './types';
+
+/** Home games (home6, fullring) have loose-passive players; 6-max is the online, more aggressive format. */
+const isLoose = (f: Format) => f !== 'sixmax';
+
+/** Build the order-of-play oval. `inHand` = seats not folded (hero included); `acted` = those of them that have acted. */
+export function buildOrder(f: Format, street: OrderView['street'], heroPos: Pos, inHand: Pos[], acted: Pos[], players?: number): OrderView {
+  const pre = positionsFor(f, players);
+  const seq = street === 'preflop' ? pre : postflopOrder(pre);
+  return {
+    street,
+    seats: seq.map((pos) => ({
+      pos,
+      status: pos === heroPos ? 'hero' : !inHand.includes(pos) ? 'folded' : acted.includes(pos) ? 'acted' : 'waiting',
+    })),
+  };
+}
 
 let counter = 0;
 const qid = () => `post-${Date.now().toString(36)}-${counter++}`;
@@ -105,11 +121,15 @@ interface Built {
   close: boolean;
   explanation: string;
   closeNote?: string;
+  closeAlternatives?: string[];
+  /** Opponent seats still in the hand, and which of them have acted this street. */
+  opp: Pos[];
+  oppActed: Pos[];
 }
 
 type Template = { id: string; weight: number; build: (f: Format, rng: Rng) => Built };
 
-const flopPot = (f: Format, players: number) => (f === 'fullring' ? 3 * players + 1.5 : 2.5 * players + 1.5);
+const flopPot = (f: Format, players: number) => (isLoose(f) ? 3 * players + 1.5 : 2.5 * players + 1.5);
 
 const TEMPLATES: Template[] = [
   {
@@ -122,9 +142,10 @@ const TEMPLATES: Template[] = [
         street: 'flop', hero, board, pot, heroPos: 'BTN',
         story: `You raised on the button and the big blind called. Heads-up. They check to you.`,
         prompt: 'You missed the flop. What do you do?',
+        opp: ['BB'], oppActed: ['BB'],
         correct: 'small', close: false,
         explanation: `This is a dry board – no flush draws and few straight draws – so it rarely helps the big blind’s calling range either. A small [[c-bet|continuation bet]] (about a third of the pot) wins the pot right away surprisingly often, and costs little when it doesn’t. If they call or raise, you can give up.`,
-        closeNote: f === 'fullring' ? 'Home-game note: against a player who never folds, just check and give up – bluffs need someone who folds.' : undefined,
+        closeNote: isLoose(f) ? 'Home-game note: against a player who never folds, just check and give up – bluffs need someone who folds.' : undefined,
       };
     },
   },
@@ -138,9 +159,10 @@ const TEMPLATES: Template[] = [
         street: 'flop', hero, board, pot, heroPos: 'BTN',
         story: `You raised on the button and both blinds called – three players. They both check to you.`,
         prompt: 'You missed this connected, two-suited board. What do you do?',
+        opp: ['SB', 'BB'], oppActed: ['SB', 'BB'],
         correct: 'check', close: false,
         explanation: `With two opponents on a board full of draws, someone has very often hit a pair or a draw and won’t fold. A bluff here rarely works. Check, take the free card, and give up if you don’t improve.`,
-        closeNote: f === 'fullring' ? 'Multiway pots are the norm in loose home games – this is one of the most useful spots to get right.' : undefined,
+        closeNote: isLoose(f) ? 'Multiway pots are the norm in loose home games – this is one of the most useful spots to get right.' : undefined,
       };
     },
   },
@@ -155,6 +177,7 @@ const TEMPLATES: Template[] = [
         street, hero, board, pot, heroPos: 'CO',
         story: `You raised from the cutoff and the big blind called. ${street === 'turn' ? 'You bet the flop and they called. ' : ''}They check to you.`,
         prompt: `You have top pair with a good kicker. What do you do?`,
+        opp: ['BB'], oppActed: ['BB'],
         correct: 'big', close: false,
         explanation: `Top pair with a good [[kicker]] is usually the best hand here, and worse hands (weaker pairs, draws) will call. Bet for [[value-bet|value]] – around two-thirds of the pot – to get paid. Checking gives free cards that could beat you.`,
         closeNote: 'A smaller bet isn’t a disaster, but against players who call a lot, bigger value bets earn more.',
@@ -173,6 +196,7 @@ const TEMPLATES: Template[] = [
         street: 'flop', hero, board, pot, heroPos: 'BTN',
         story: `You raised on the button and the big blind called. They check to you.`,
         prompt: `You flopped ${what === 'three of a kind' ? 'a [[set]]' : 'two pair'}. What do you do?`,
+        opp: ['BB'], oppActed: ['BB'],
         correct: 'big', close: false,
         explanation: `You have a very strong hand on a board with possible draws. Bet big: you get paid by pairs and draws now, and you make drawing hands pay the wrong price to chase. Don’t slow-play on a wet board – a free card could beat you.`,
       };
@@ -188,6 +212,7 @@ const TEMPLATES: Template[] = [
         street: 'flop', hero, board, pot, heroPos: 'BTN',
         story: `You raised on the button and the big blind called. They check to you.`,
         prompt: 'You have a strong draw. What do you do?',
+        opp: ['BB'], oppActed: ['BB'], closeAlternatives: ['check'],
         correct: 'big', close: true,
         explanation: `Bet as a [[semi-bluff]]: you can win the pot right now if they fold, and if they call you still have lots of [[outs]] to make the best hand. Betting also means you won’t have to call a bet later with a draw.`,
         closeNote: 'Checking to take a free card is also reasonable, especially against players who never fold. Betting is the better default heads-up.',
@@ -209,6 +234,7 @@ const TEMPLATES: Template[] = [
         street: 'flop', hero, board, pot, bet, heroPos: 'BB',
         story: `You called a raise from the big blind. On the flop you check and your opponent bets ${bb(bet)} into ${bb(pot)}.`,
         prompt: 'You have a strong draw facing a small bet. What do you do?',
+        opp: ['BTN'], oppActed: ['BTN'], closeAlternatives: ['raise'],
         correct: 'call', close: true,
         explanation: `A small bet gives you a good price: call ${bb(bet)} to win ${bb(pot + bet)}, so you need to win ${Math.round(need * 100)}% of the time. ${outs} cards complete your draw – about ${outs * 2}% on the next card alone (${outs} × 2) – and you’ll win more when you hit ([[implied-odds|implied odds]]). Call.`,
         closeNote: 'Raising as a semi-bluff is also fine against opponents who fold. Folding is the mistake.',
@@ -226,6 +252,7 @@ const TEMPLATES: Template[] = [
         street: 'flop', hero, board, pot, bet, heroPos: 'BB',
         story: `You called a raise from the big blind. You check and your opponent bets ${bb(bet)} into ${bb(pot)}.`,
         prompt: 'You have top pair with a good kicker. What do you do?',
+        opp: ['BTN'], oppActed: ['BTN'], closeAlternatives: ['raise'],
         correct: 'call', close: true,
         explanation: `Top pair, good kicker is too good to fold to a normal-sized bet, but raising mostly makes worse hands fold and gets called by better ones. Calling keeps their weaker hands and bluffs in, and keeps the pot manageable [[out-of-position|out of position]].`,
         closeNote: 'Raising for value is fine against players who bet lots of weak hands. Folding is the mistake here.',
@@ -241,11 +268,12 @@ const TEMPLATES: Template[] = [
       const bet = half(pot);
       return {
         street: 'turn', hero, board, pot, bet, heroPos: 'BB',
-        story: `You called a raise from the big blind and called a small bet on the flop. On the turn your opponent – ${f === 'fullring' ? 'a quiet player who rarely bets without a hand' : 'a solid regular'} – bets the size of the pot.`,
+        story: `You called a raise from the big blind and called a small bet on the flop. On the turn your opponent – ${isLoose(f) ? 'a quiet player who rarely bets without a hand' : 'a solid regular'} – bets the size of the pot.`,
         prompt: 'You have bottom pair. What do you do?',
-        correct: 'fold', close: f === 'sixmax',
+        opp: ['BTN'], oppActed: ['BTN'],
+        correct: 'fold', close: !isLoose(f),
         explanation: `A big bet on the turn usually means a strong hand, and bottom pair beats only bluffs. You’d need to win a third of the time to call a pot-sized bet, and with one card to come you rarely improve. Fold.`,
-        closeNote: f === 'sixmax' ? '6-max note: aggressive online players bluff more, so this is closer there – but folding is still the safe beginner default.' : 'Full ring note: quiet, passive players almost never bluff big. Believe them.',
+        closeNote: !isLoose(f) ? '6-max note: aggressive online players bluff more, so this is closer there – but folding is still the safe beginner default.' : 'Home-game note: quiet, passive players almost never bluff big. Believe them.',
       };
     },
   },
@@ -262,11 +290,12 @@ const TEMPLATES: Template[] = [
       const pot = half(flopPot(f, 2) * 3);
       return {
         street: 'river', hero, board, pot, heroPos: 'BTN',
-        story: `You chased a draw all the way and missed. Your opponent – ${f === 'fullring' ? 'a loose player who calls almost everything' : 'a player who has called every bet'} – checks to you on the river.`,
+        story: `You chased a draw all the way and missed. Your opponent – ${isLoose(f) ? 'a loose player who calls almost everything' : 'a player who has called every bet'} – checks to you on the river.`,
         prompt: 'You have nothing. What do you do?',
-        correct: 'check', close: f === 'sixmax',
+        opp: ['BB'], oppActed: ['BB'],
+        correct: 'check', close: !isLoose(f),
         explanation: `A [[bluff]] only works if your opponent folds, and players who call too much won’t. Your hand can’t win at [[showdown]], so check and accept the loss – that’s cheaper than bluffing into someone who always calls.`,
-        closeNote: f === 'sixmax' ? '6-max note: thinking opponents fold more, so the occasional river bluff can work online. Against a confirmed calling station, never.' : 'Full ring note: in loose home games, pure river bluffs should be rare.',
+        closeNote: !isLoose(f) ? '6-max note: thinking opponents fold more, so the occasional river bluff can work online. Against a confirmed calling station, never.' : 'Home-game note: in loose home games, pure river bluffs should be rare.',
       };
     },
   },
@@ -280,6 +309,7 @@ const TEMPLATES: Template[] = [
         street: 'river', hero, board, pot, heroPos: 'CO',
         story: `You bet the flop and turn and your opponent called both times. They check the river.`,
         prompt: 'You have top pair, good kicker, and the board looks safe. What do you do?',
+        opp: ['BB'], oppActed: ['BB'], closeAlternatives: ['small'],
         correct: 'big', close: true,
         explanation: `Players who call a lot will call again with worse pairs. Bet for [[value-bet|value]]. This is how you make money against loose players: bet your good hands, don’t bluff your bad ones.`,
         closeNote: 'A smaller value bet is fine too if you think they only call with weak hands. Checking misses value.',
@@ -308,9 +338,11 @@ export function postflopQuestion(format: Format, rng: Rng = Math.random, templat
     close: b.close,
     explanation: b.explanation,
     closeNote: b.closeNote,
+    closeAlternatives: b.closeAlternatives,
+    order: buildOrder(format, b.street, b.heroPos, [b.heroPos, ...b.opp], b.oppActed),
     facts: {
       template: t.id,
-      format: `${FORMAT_SHORT[format]} (${format === 'fullring' ? 'loose-passive home game' : 'online, more aggressive'})`,
+      format: `${FORMAT_SHORT[format]} (${isLoose(format) ? 'loose-passive home game' : 'online, more aggressive'})`,
       street: b.street,
       my_position: b.heroPos,
       my_cards: showCards(b.hero),

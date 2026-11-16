@@ -1,13 +1,20 @@
-export type Format = 'fullring' | 'sixmax';
+/** home6 = 6-handed live home game, loose-passive (the default since v2). */
+export type Format = 'home6' | 'fullring' | 'sixmax';
 
-export const FORMAT_LABEL: Record<Format, string> = { fullring: 'Full ring (home game)', sixmax: '6-max' };
-export const FORMAT_SHORT: Record<Format, string> = { fullring: 'Full ring', sixmax: '6-max' };
+/** Formats in the order the switcher cycles through them. */
+export const FORMATS: Format[] = ['home6', 'sixmax', 'fullring'];
+
+/** True for the 6-seat formats (home6 and sixmax share seats and chart positions). */
+export const isSixSeat = (format: Format) => format !== 'fullring';
+
+export const FORMAT_LABEL: Record<Format, string> = { home6: '6-handed home game', fullring: 'Full ring (home game)', sixmax: '6-max (online)' };
+export const FORMAT_SHORT: Record<Format, string> = { home6: 'Home 6', fullring: 'Full ring', sixmax: '6-max' };
 
 /** Seat names in preflop action order (first to act → big blind). */
 export type Pos = 'UTG' | 'UTG+1' | 'UTG+2' | 'LJ' | 'HJ' | 'CO' | 'BTN' | 'SB' | 'BB';
 
 export function positionsFor(format: Format, players?: number): Pos[] {
-  if (format === 'sixmax') return ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+  if (isSixSeat(format)) return ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
   if (players === 8) return ['UTG', 'UTG+1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
   return ['UTG', 'UTG+1', 'UTG+2', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 }
@@ -35,7 +42,7 @@ export type Zone = 'early' | 'middle' | 'late' | 'blinds';
 export function zoneOf(format: Format, pos: Pos): Zone {
   if (pos === 'SB' || pos === 'BB') return 'blinds';
   if (pos === 'CO' || pos === 'BTN') return 'late';
-  if (format === 'sixmax') return pos === 'UTG' ? 'early' : 'middle';
+  if (isSixSeat(format)) return pos === 'UTG' ? 'early' : 'middle';
   return pos === 'LJ' || pos === 'HJ' ? 'middle' : 'early';
 }
 
@@ -43,7 +50,7 @@ export function zoneOf(format: Format, pos: Pos): Zone {
 export type ChartPos = 'EP' | 'MP' | 'UTG' | 'HJ' | 'CO' | 'BTN' | 'SB' | 'BB';
 
 export function chartPos(format: Format, pos: Pos): ChartPos {
-  if (format === 'sixmax') return pos as ChartPos;
+  if (isSixSeat(format)) return pos as ChartPos;
   if (pos === 'UTG' || pos === 'UTG+1' || pos === 'UTG+2') return 'EP';
   if (pos === 'LJ' || pos === 'HJ') return 'MP';
   return pos as ChartPos;
@@ -61,4 +68,4 @@ export const CHART_POS_LABEL: Record<ChartPos, string> = {
 };
 
 export const chartPositions = (format: Format): ChartPos[] =>
-  format === 'sixmax' ? ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'] : ['EP', 'MP', 'CO', 'BTN', 'SB', 'BB'];
+  isSixSeat(format) ? ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'] : ['EP', 'MP', 'CO', 'BTN', 'SB', 'BB'];

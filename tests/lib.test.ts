@@ -17,7 +17,7 @@ describe('storage & backup', () => {
   it('backup never contains the API key', () => {
     const KEY = 'sk-proj-SECRET1234567890abcd';
     setApiKey(KEY);
-    let s = recordAnswer(defaultState(), 'preflop', true);
+    let s = recordAnswer(defaultState(), 'preflop', 'right');
     saveState(s);
     s = loadState();
     const json = exportBackup(s);
@@ -26,10 +26,36 @@ describe('storage & backup', () => {
     expect(json).not.toContain(API_KEY_KEY);
     expect(getApiKey()).toBe(KEY);
   });
+  it('close calls: counted as a pass in recent, not in correct, and round-trip through a backup', () => {
+    let s = recordAnswer(defaultState(), 'preflop', 'right');
+    s = recordAnswer(s, 'preflop', 'close');
+    s = recordAnswer(s, 'preflop', 'mistake');
+    expect(s.stats.preflop).toEqual({ seen: 3, correct: 1, close: 1, recent: [1, 1, 0] });
+    expect(importBackup(exportBackup(s)).stats.preflop).toEqual(s.stats.preflop);
+  });
+  it('old stats without a close field load with close = 0', () => {
+    const b = importBackup(JSON.stringify({ version: 2, settings: {}, stats: { preflop: { seen: 4, correct: 3, recent: [1, 0] } }, lessons: {} }));
+    expect(b.stats.preflop).toEqual({ seen: 4, correct: 3, close: 0, recent: [1, 0] });
+  });
+  it('v1 state migrates to v2 and home6; v2 keeps its format; backups of v1 import', () => {
+    const v1 = { version: 1, settings: { format: 'sixmax' }, stats: {}, lessons: { 1: { screen: 2, done: true } } };
+    localStorage.setItem('holdem-coach:state:v1', JSON.stringify(v1));
+    const m = loadState();
+    expect(m.version).toBe(2);
+    expect(m.settings.format).toBe('home6');
+    expect(m.lessons[1].done).toBe(true);
+    saveState({ ...m, settings: { ...m.settings, format: 'sixmax' } });
+    expect(loadState().settings.format).toBe('sixmax');
+    const imp = importBackup(JSON.stringify({ app: 'holdem-coach', data: v1 }));
+    expect(imp.version).toBe(2);
+    expect(imp.settings.format).toBe('home6');
+    expect(defaultState().settings.format).toBe('home6');
+    expect(importBackup(JSON.stringify({ version: 2, settings: { format: 'fullring' } })).settings.format).toBe('fullring');
+  });
   it('round-trips a backup and rejects junk', () => {
-    const s = recordAnswer(recordAnswer(defaultState(), 'positions', true), 'positions', false);
+    const s = recordAnswer(recordAnswer(defaultState(), 'positions', 'right'), 'positions', 'mistake');
     const back = importBackup(exportBackup(s));
-    expect(back.stats.positions).toEqual({ seen: 2, correct: 1, recent: [1, 0] });
+    expect(back.stats.positions).toEqual({ seen: 2, correct: 1, close: 0, recent: [1, 0] });
     expect(() => importBackup('{"hello":1}')).toThrow();
     expect(() => importBackup('not json')).toThrow();
   });
@@ -41,8 +67,8 @@ describe('storage & backup', () => {
   });
   it('mix weights lean towards weaker skills', () => {
     let s = defaultState();
-    for (let i = 0; i < 10; i++) s = recordAnswer(s, 'positions', true);
-    for (let i = 0; i < 10; i++) s = recordAnswer(s, 'preflop', i % 2 === 0);
+    for (let i = 0; i < 10; i++) s = recordAnswer(s, 'positions', 'right');
+    for (let i = 0; i < 10; i++) s = recordAnswer(s, 'preflop', i % 2 === 0 ? 'right' : 'mistake');
     const w = mixWeights(s, ['positions', 'preflop']);
     expect(w.preflop).toBeGreaterThan(w.positions);
     expect(w.positions).toBe(1);

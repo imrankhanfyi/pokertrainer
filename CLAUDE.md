@@ -21,6 +21,8 @@ User-facing setup, deploy and content-editing docs are in `README.md`. This file
 | AI chat sheet: "Explain more", and "Why isn't that right?" when the student types their reasoning | `src/screens/ExplainSheet.tsx` |
 | Practice screen, with the reasoning box shown on wrong answers | `src/screens/Practice.tsx` |
 | Settings, with the provider choice | `src/screens/Settings.tsx` |
+| Grading (`gradeAnswer`), typed answers, working steps, order oval: shared types | `src/engine/scenarios/types.ts` |
+| v2 UI pieces: working steps, order oval, chart after a miss | `src/ui/Working.tsx`, `src/ui/OrderOval.tsx`, `src/ui/ChartAfterMiss.tsx` |
 | Layout check | `scripts/layout-check.mjs` |
 
 ## Rules that aren't obvious from the code
@@ -33,8 +35,8 @@ User-facing setup, deploy and content-editing docs are in `README.md`. This file
   - `npm test`, `npm run build`, then `npm run layout` (WebKit, iPhone SE/15/Pro Max, light and dark).
   - The layout check needs the Playwright WebKit browser: `npx playwright install webkit`, ~300 MB. The user's disk is tight, so delete `~/Library/Caches/ms-playwright` and `layout-shots/` afterwards.
 
-## Where to pick up (as of 2026-11-02)
-1. **Gemini works end to end.** On 2026-11-02 the user confirmed on iPhone that a real free key, Check and the "Why isn't that right?" box all work.
+## Where to pick up (as of 2026-11-16)
+1. **v2 is built on branch `v2` and has not been merged or deployed.** The spec is `docs/v2-spec.md` and the changes are in `CHANGELOG.md`. Next steps: the user reviews it, then merge to `main` (which deploys) and confirm on iPhone. Home 6 ranges: see the source/deviation notes in the `src/data/ranges/index.ts` header.
 2. **The progress-loss report is unconfirmed.** The user was asked whether they practised in Safari and then checked the home-screen app, or re-added the icon. Follow up if it recurs inside the installed app.
 3. **Deploy warnings:** the GitHub Actions in `deploy.yml` (checkout, setup-node, upload-artifact and deploy-pages, all @v4) are flagged as Node-20-deprecated, and ubuntu-latest is moving to 26. Bump them when convenient.
 4. **Optional:** connect Netlify (see README §2B).

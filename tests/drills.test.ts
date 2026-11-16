@@ -11,7 +11,7 @@ import { outsQuestion } from '../src/engine/scenarios/outs';
 import { potOddsQuestion } from '../src/engine/scenarios/potodds';
 import { POSTFLOP_TEMPLATE_IDS, connectedness, isDry, isWet, maxSuitCount, postflopQuestion } from '../src/engine/scenarios/postflop';
 import { fullHandQuestion, handToQuestions } from '../src/engine/scenarios/fullhand';
-import type { Question } from '../src/engine/scenarios/types';
+import { gradeAnswer, type Question } from '../src/engine/scenarios/types';
 
 const P = parseCards;
 const unique = (cs: Card[]) => new Set(cs).size === cs.length;
@@ -59,21 +59,30 @@ describe('draw spots', () => {
 });
 
 describe('outs drill', () => {
-  it('1,000 two-step questions teach the right numbers', () => {
+  it('1,000 two-step numeric questions teach the right numbers', () => {
     const rng = seededRng(11);
+    const fmts = ['home6', 'fullring', 'sixmax'] as const;
     for (let i = 0; i < 1000; i++) {
-      const q = outsQuestion(i % 2 ? 'fullring' : 'sixmax', rng);
+      const q = outsQuestion(fmts[i % 3], rng);
       const [s1, s2] = chain(q);
       const v = s1.cardsView!;
       expect(unique([...v.hero, ...v.villain!, ...v.board])).toBe(true);
       const n = outsAgainst(v.hero, v.villain!, v.board).outs.length;
-      expect(s1.correct).toBe(String(n));
-      expect(s1.choices.map((c) => c.id)).toContain(s1.correct);
-      expect(new Set(s1.choices.map((c) => c.id)).size).toBe(4);
+      expect(s1.numeric).toBeDefined();
+      expect(s1.numeric!.min).toBe(n);
+      expect(s1.numeric!.max).toBe(n);
+      expect(s1.numeric!.answerText).toBe(`${n} outs`);
+      expect(gradeAnswer(s1, String(n))).toBe('right');
+      expect(gradeAnswer(s1, String(n + 1))).toBe('mistake');
       const cards = v.board.length === 3 ? 2 : 1;
-      expect(s2.correct).toBe(String(ruleOf2and4(n, cards)));
-      expect(Math.abs(ruleOf2and4(n, cards) - exactHitChance(n, cards) * 100)).toBeLessThanOrEqual(3);
-      expect(new Set(s2.choices.map((c) => c.id)).size).toBe(4);
+      const est = ruleOf2and4(n, cards);
+      const exactPct = exactHitChance(n, cards) * 100;
+      expect(Math.abs(est - exactPct)).toBeLessThanOrEqual(3);
+      const nm = s2.numeric!;
+      expect(nm.min).toBeLessThanOrEqual(Math.min(est, exactPct));
+      expect(nm.max).toBeGreaterThanOrEqual(Math.max(est, exactPct));
+      expect(gradeAnswer(s2, String(est))).toBe('right');
+      expect(gradeAnswer(s2, String(Math.round(exactPct)))).toBe('right');
       checkLinks(s1); checkLinks(s2);
     }
   });
@@ -83,7 +92,8 @@ describe('pot-odds drill', () => {
   it('500 questions: the answer agrees with the exact equity vs the real hand, bets are sane', () => {
     const rng = seededRng(5);
     for (let i = 0; i < 500; i++) {
-      const q = potOddsQuestion(i % 2 ? 'fullring' : 'sixmax', rng);
+      const q0 = potOddsQuestion((['home6', 'fullring', 'sixmax'] as const)[i % 3], rng);
+      const [q1, q] = chain(q0);
       const f = q.facts;
       const pot = parseFloat(f.pot_before_bet);
       const bet = parseFloat(f.opponent_bet);
@@ -93,12 +103,18 @@ describe('pot-odds drill', () => {
       expect(pot).toBeLessThanOrEqual(60); // turn pots in 3-bet pots reach ~47bb
       const need = potOdds(pot, bet).requiredEquity;
       expect(f.required_equity).toBe(`${(need * 100).toFixed(1)}%`);
+      // Step 1: type the % needed.
+      expect(q1.numeric).toBeDefined();
+      expect(q1.numeric!.min).toBeLessThanOrEqual(need * 100);
+      expect(q1.numeric!.max).toBeGreaterThanOrEqual(need * 100);
+      expect(gradeAnswer(q1, String(Math.round(need * 100)))).toBe('right');
+      // Step 2: call/fold agrees with the exact hit chance and with the shown estimate.
       const hit = parseFloat(f.my_chance_to_hit) / 100;
       expect(q.correct).toBe(hit >= need ? 'call' : 'fold');
-      // The rule-of-thumb figure shown in the explanation agrees with the answer.
-      const est = Number(q.explanation.match(/About (\d+)% is (more|less)/)![1]) / 100;
-      expect(est >= need ? 'call' : 'fold').toBe(q.correct);
-      checkLinks(q);
+      const est = Number(q.working!.map((w) => w.text).join(' ').match(/about \*\*(\d+)%\*\*/)![1]) / 100;
+      expect(Math.round(est * 100) >= Math.round(need * 100) ? 'call' : 'fold').toBe(q.correct);
+      expect(q.closeAlternatives === undefined).toBe(!q.close);
+      checkLinks(q1); checkLinks(q);
     }
   });
   it('turn decisions match the exact one-card equity against the hidden hand', () => {
@@ -120,7 +136,7 @@ describe('post-flop drill', () => {
     it(`${id}: 120 deals fit the template`, () => {
       const rng = seededRng(id.length * 13);
       for (let i = 0; i < 120; i++) {
-        const q = postflopQuestion(i % 2 ? 'fullring' : 'sixmax', rng, id);
+        const q = postflopQuestion((['fullring', 'sixmax', 'home6'] as const)[i % 3], rng, id);
         const { hero, board } = q.cardsView!;
         expect(unique([...hero, ...board])).toBe(true);
         expect(q.choices.map((c) => c.id)).toContain(q.correct);

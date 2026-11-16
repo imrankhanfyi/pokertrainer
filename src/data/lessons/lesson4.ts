@@ -45,6 +45,7 @@ export const lesson4: Lesson = {
         ] },
         {
           t: 'format',
+          home6: '**Home games:** loose players often pay off when you hit, so implied odds are real. Call a little lighter with good draws – but not with gutshots facing big bets.',
           fullring: '**Full ring home games:** loose players often pay off when you hit, so implied odds are real. Call a little lighter with good draws – but not with gutshots facing big bets.',
           sixmax: '**6-max online:** opponents are more careful and fold when the obvious draw arrives, so lean on the direct price and treat implied odds as a small bonus.',
         },

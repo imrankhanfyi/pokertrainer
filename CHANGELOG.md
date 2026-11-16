@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-16 — v2 (branch `v2`; spec in `docs/v2-spec.md`)
+- **Big-blind check bug fixed:** facing limpers, the big blind could be told to fold hands like K5s. Unlisted hands now default to check (chart-level `default`), with a regression test.
+- **New "Home 6" format (default):** 6-handed, loose-passive home game. Ranges cite Advanced Poker Training's "NL Hold'em Starting Hand Charts" (charts #1 and #3); deviations are listed in the `src/data/ranges/index.ts` header. The big-blind defence against a raise uses the 6-max range rather than the source's "pairs and AQ". Existing installs are switched to Home 6 once (state `version` 1 → 2).
+- **Three grades:** Right / Close call (amber, not counted as a miss) / Mistake. A close call is a hand next to a different action on the 13×13 grid, and it now works for the blinds too. Stats count close calls separately.
+- **Chart after a miss:** a "See the whole chart" grid with your hand outlined.
+- **Typed answers:** outs and % are typed in, and so is the "% you need" in pot odds. Feedback shows the working one step at a time: the out cards flash up, chip bars show the pot, and a "need" line sits next to your chance.
+- **Order-of-play oval:** a small dot oval showing who has acted, who has folded, you, and who is still to come, on starting hands, post-flop and full hands. Full-hand steps now record `inHand`/`acted`.
+- **Layout check:** it now handles typed answers and expands the working and chart.
+
 ## 2026-11-02
 - **Gemini option for "Explain more":**
   - Settings now offers a choice of AI provider, Gemini (free tier, default model `gemini-3.5-flash-lite`) or OpenAI.

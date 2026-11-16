@@ -3,9 +3,8 @@ import { GLOSSARY } from '../data/glossary';
 import { listModelsFor } from '../lib/ai';
 import { ExplainError, PROVIDER_NAME, errorText } from '../lib/openai';
 import { DEFAULT_GEMINI_MODEL, DEFAULT_MODEL, defaultState, exportBackup, getApiKey, importBackup, isInstalledApp, maskKey, removeApiKey, setApiKey } from '../lib/storage';
-import { Cards, Segmented, Toast, TopBar } from '../ui/components';
+import { Cards, FormatPicker, Segmented, Toast, TopBar } from '../ui/components';
 import { back, useApp } from '../ui/state';
-import { FormatToggle } from './Home';
 
 export function Settings() {
   const { state, update, replace } = useApp();
@@ -87,7 +86,7 @@ export function Settings() {
 
       <h2>Table</h2>
       <div className="card-section">
-        <div className="setting"><label className="lbl">Default format</label><FormatToggle /></div>
+        <div className="setting"><label className="lbl">Default format</label><FormatPicker value={state.settings.format} onChange={(f) => set({ format: f })} /></div>
         <div className="setting">
           <label className="switch-row">
             <div><strong>Four-colour deck</strong><div className="tiny">Diamonds blue, clubs green. Suit symbols always show.</div></div>

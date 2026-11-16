@@ -28,6 +28,7 @@ export const lesson5: Lesson = {
         { t: 'spot', hero: 'Ad Qc', board: '9h 8h 6s', caption: '[[wet-board|Wet board]], two or more opponents: someone usually connects. Check when you miss.' },
         {
           t: 'format',
+          home6: '**Home game (6 players):** even with six, home-game pots are often [[multiway]] – c-bet less, and mostly when you have something.',
           fullring: '**Full ring:** home-game pots are often [[multiway]] – c-bet less, and mostly when you have something.',
           sixmax: '**6-max:** you’ll be heads-up more often, so c-betting dry boards works well.',
         },
@@ -60,6 +61,7 @@ export const lesson5: Lesson = {
         { t: 'p', text: 'The flip side is good news: against those same players, **value-bet** your good hands and they’ll pay you. That’s where most of your profit will come from.' },
         {
           t: 'format',
+          home6: '**Home games:** pure river bluffs should be very rare – friends who like to call will call. Bet for value, check when you miss.',
           fullring: '**Full ring home games:** pure river bluffs should be very rare. Bet for value, check when you miss.',
           sixmax: '**6-max online:** thinking players fold more, so an occasional river bluff can work – but against anyone who has called every street, still don’t.',
         },

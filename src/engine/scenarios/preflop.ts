@@ -1,8 +1,14 @@
 import { ALL_CLASSES, type HandClass, type Rank, type Rng, classOf, combosIn, dealClass, describeClass, pick, rankValue, shuffled } from '../cards';
-import { type ChartPos, type Format, type Pos, CHART_POS_LABEL, FORMAT_SHORT, POS_NAME, chartPos, positionsFor } from '../../data/positions';
+import { type ChartPos, type Format, type Pos, FORMAT_SHORT, POS_NAME, chartPos, positionsFor } from '../../data/positions';
 import { SITUATION_LABEL, SIZING, type Situation, isoSize } from '../../data/ranges';
 import { type PreAction, getChart, preflopAnswer } from '../preflop';
-import type { Question, Seat } from './types';
+import type { OrderView, Question, Seat } from './types';
+
+const FORMAT_DESC: Record<Format, string> = {
+  home6: '6-handed live home game, loose-passive',
+  fullring: 'live home game, loose-passive',
+  sixmax: 'online, more aggressive',
+};
 
 let counter = 0;
 const qid = () => `pre-${Date.now().toString(36)}-${counter++}`;
@@ -44,8 +50,8 @@ export function buildSetup(format: Format, situation: Situation, rng: Rng): Setu
   if (situation === 'open') {
     for (const p of before) set(p, { state: 'folded', tag: 'Fold' });
   } else if (situation === 'limpers') {
-    // Full ring home games limp a lot; 6-max online less so.
-    const maxL = Math.min(before.length, format === 'fullring' ? 3 : 2);
+    // Home games (6-handed or full ring) limp a lot; 6-max online less so.
+    const maxL = Math.min(before.length, format === 'sixmax' ? 2 : 3);
     const wanted = 1 + Math.floor(rng() * maxL);
     const limpSeats = new Set(shuffled(before, rng).slice(0, wanted));
     for (const p of before) {
@@ -70,15 +76,33 @@ export function buildSetup(format: Format, situation: Situation, rng: Rng): Setu
   return { format, situation, hero, seats, limpers, raiser, raiseTo, pot };
 }
 
-/** Weight hands so drills focus on decisions that matter, not obvious trash folds. */
-function sampleHand(format: Format, situation: Situation, cp: ChartPos, rng: Rng): HandClass {
+/** Relative weight of an obvious free check (vs 5 for a hand on the edge of the chart). */
+const CHECK_WEIGHT = 0.1;
+
+/** Weight hands so drills focus on decisions that matter, not obvious trash folds or free checks. */
+const weightCache = new Map<string, number[]>();
+
+function handWeights(format: Format, situation: Situation, cp: ChartPos): number[] {
+  const key = `${format}/${situation}/${cp}`;
+  const hit = weightCache.get(key);
+  if (hit) return hit;
+  const chart = getChart(format, situation, cp)!;
   const weights = ALL_CLASSES.map((hc) => {
     const a = preflopAnswer(format, situation, cp, hc);
     let w = a.close ? 5 : a.action !== 'fold' ? 2 : 0.6;
     // A sprinkling of tempting-but-bad hands (any ace, two face cards, suited) for realism.
     if (a.action === 'fold' && (hc[0] === 'A' || (rankValue(hc[1] as Rank) >= 10) || hc[2] === 's')) w = 1.2;
+    // When the chart's default isn't fold (the big blind facing limpers checks everything it doesn't raise),
+    // most hands are an obvious free check: show those rarely so the drill is about the raise/check line.
+    if (chart.default !== 'fold' && a.action === chart.default && !a.close) w = CHECK_WEIGHT;
     return w * combosIn(hc);
   });
+  weightCache.set(key, weights);
+  return weights;
+}
+
+function sampleHand(format: Format, situation: Situation, cp: ChartPos, rng: Rng): HandClass {
+  const weights = handWeights(format, situation, cp);
   const total = weights.reduce((s, w) => s + w, 0);
   let r = rng() * total;
   for (let i = 0; i < ALL_CLASSES.length; i++) if ((r -= weights[i]) < 0) return ALL_CLASSES[i];
@@ -136,10 +160,11 @@ function explain(s: Setup, hc: HandClass, action: PreAction): string {
     const n = s.limpers;
     const lp = n === 1 ? 'one limper' : `${n} limpers`;
     if (action === 'raise') {
-      return `With ${hand}, raise to about ${fmt(isoSize(s.format, n))} (${sz.isoBase}bb + 1bb per limper) to [[isolate]] the ${lp}. Limpers usually have weak hands, so raising lets you build a pot with the better hand, often [[heads-up]].`;
+      const never = s.hero === 'BB' ? ' (Never fold here: you can check for free.)' : '';
+      return `With ${hand}, raise to about ${fmt(isoSize(s.format, n))} (${sz.isoBase}bb + 1bb per limper) to [[isolate]] the ${lp}. Limpers usually have weak hands, so raising lets you build a pot with the better hand, often [[heads-up]].${never}`;
     }
     if (action === 'call') {
-      if (s.hero === 'BB') return `${H} isn't worth a raise here, but you already have the [[big-blind]] in, so just [[check]] and see a free flop.`;
+      if (s.hero === 'BB') return `${H} isn't worth a raise here, but you already have the [[big-blind]] in, so just [[check]] and see a free flop. You can check for free, so never fold here.`;
       if (isSmallPair(hc)) return `${H} wants a cheap look at the flop to hit a [[set]] (about 1 flop in 8). With ${lp} already in, the pot will be big when you hit, so [[overlimp|call]]. If you miss, you'll usually give up.`;
       return `${H} plays well in a cheap [[multiway]] pot because it can make straights and flushes. [[overlimp|Call]] rather than raise, and be ready to fold the flop if you miss.`;
     }
@@ -163,16 +188,30 @@ function explain(s: Setup, hc: HandClass, action: PreAction): string {
 
 function closeNote(s: Setup, hc: HandClass, a: ReturnType<typeof preflopAnswer>): string | undefined {
   const parts: string[] = [];
-  const verb = (x: PreAction, sit: Situation) => (x === 'raise' ? (sit === 'raise' ? 're-raise' : 'raise') : x === 'call' ? (sit === 'open' ? 'limp' : 'call') : 'fold');
-  const diffs = a.neighbours.filter((n) => n.action !== a.action);
-  if (diffs.length) {
-    const d = diffs[0];
-    parts.push(`This is close: from ${CHART_POS_LABEL[d.pos].toLowerCase()} the chart says ${verb(d.action, s.situation)}. Against very passive players, the more aggressive choice gets better; against tough players, the tighter one.`);
+  const verb = (x: PreAction, sit: Situation) =>
+    x === 'raise' ? (sit === 'raise' ? 're-raise' : 'raise') : x === 'call' ? (sit === 'open' ? 'limp' : s.hero === 'BB' && sit === 'limpers' ? 'check' : 'call') : 'fold';
+  if (a.close) {
+    const next = a.closeAlternatives.map((alt) => {
+      const hands = a.neighbours.filter((n) => n.action === alt).map((n) => n.hand);
+      return `${hands.join(' and ')} (${verb(alt, s.situation)})`;
+    });
+    parts.push(`This is close: on the chart ${hc} sits next to ${next.join(' and ')}. Against very passive players, the more aggressive choice gets better; against tough players, the tighter one.`);
   }
   if (a.otherFormat && a.otherFormat.action !== a.action) {
     parts.push(`Format difference: in ${FORMAT_SHORT[a.otherFormat.format]} the chart says ${verb(a.otherFormat.action, s.situation)} with ${hc} from the equivalent seat.`);
   }
   return parts.length ? parts.join(' ') : undefined;
+}
+
+/** Order-of-play oval: who has acted, who folded, and who is still to come after you. */
+function orderView(seats: Seat[]): OrderView {
+  return {
+    street: 'preflop',
+    seats: seats.map((x) => ({
+      pos: x.pos,
+      status: x.state === 'hero' ? 'hero' : x.state === 'folded' ? 'folded' : x.state === 'limped' || x.state === 'raised' ? 'acted' : 'waiting',
+    })),
+  };
 }
 
 export function preflopQuestion(format: Format, rng: Rng = Math.random, forced?: { situation?: Situation; hand?: HandClass }): Question {
@@ -200,10 +239,13 @@ export function preflopQuestion(format: Format, rng: Rng = Math.random, forced?:
     choices: actions.map((id) => ({ id, ...labels[id] })),
     correct: ans.action,
     close: ans.close,
+    closeAlternatives: ans.closeAlternatives,
+    chart: { format, situation, pos: cp, hand: hc },
+    order: orderView(s.seats),
     explanation: explain(s, hc, ans.action),
     closeNote: note,
     facts: {
-      format: `${FORMAT_SHORT[format]} (${format === 'fullring' ? 'live home game, loose-passive' : 'online, more aggressive'}), 100bb stacks`,
+      format: `${FORMAT_SHORT[format]} (${FORMAT_DESC[format]}), 100bb stacks`,
       position: POS_NAME[s.hero],
       hand: `${cards.join(' ')} (${hc})`,
       action_before_me: context,

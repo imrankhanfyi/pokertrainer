@@ -7,7 +7,7 @@ export type Block =
   | { t: 'p'; text: string }
   | { t: 'tip'; text: string }
   | { t: 'list'; items: string[] }
-  | { t: 'format'; fullring: string; sixmax: string } // shows the text for the selected format
+  | { t: 'format'; home6: string; fullring: string; sixmax: string } // shows the text for the selected format
   | { t: 'table'; highlight?: Pos[]; caption?: string; zones?: boolean }
   | { t: 'cards'; cards: string; caption: string }
   | { t: 'chart'; situation: Situation; caption?: string }

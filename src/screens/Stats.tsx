@@ -14,7 +14,7 @@ export function Stats() {
       <div className="card-section">
         {SKILLS.map((s) => {
           const st = state.stats[s.id];
-          const pct = st && st.seen ? Math.round((st.correct / st.seen) * 100) : null;
+          const pct = st && st.seen ? Math.round(((st.correct + (st.close ?? 0)) / st.seen) * 100) : null;
           const recent = st?.recent ?? [];
           const rpct = recent.length ? Math.round((recent.reduce((a, b) => a + b, 0) / recent.length) * 100) : null;
           return (
@@ -22,7 +22,7 @@ export function Stats() {
               <div className="top"><strong>{s.title}</strong><span className="muted small">{st?.seen ?? 0} answered</span></div>
               <div className="progress" aria-hidden="true"><div style={{ width: `${pct ?? 0}%` }} /></div>
               <div className="tiny" style={{ marginTop: 4 }}>
-                {pct == null ? 'Not practised yet' : `${pct}% right overall${rpct != null ? ` · ${rpct}% in your last ${recent.length}` : ''}`}
+                {pct == null ? 'Not practised yet' : `${pct}% right overall${st && st.close ? ` · ${st.close} close call${st.close === 1 ? '' : 's'}` : ''}${rpct != null ? ` · ${rpct}% in your last ${recent.length}` : ''}`}
               </div>
             </div>
           );

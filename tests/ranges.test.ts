@@ -3,11 +3,11 @@ import { ALL_CLASSES, classOf, seededRng } from '../src/engine/cards';
 import { chartPositions, type Format } from '../src/data/positions';
 import { RANGES, type Situation } from '../src/data/ranges';
 import { parseRange } from '../src/data/ranges/notation';
-import { getChart } from '../src/engine/preflop';
+import { chartAction, getChart } from '../src/engine/preflop';
 import { preflopQuestion } from '../src/engine/scenarios/preflop';
 import { positionsQuestion } from '../src/engine/scenarios/positions';
 
-const FORMATS: Format[] = ['fullring', 'sixmax'];
+const FORMATS: Format[] = ['home6', 'fullring', 'sixmax'];
 const SITS: Situation[] = ['open', 'limpers', 'raise'];
 
 describe('range notation', () => {
@@ -59,10 +59,24 @@ describe('range tables', () => {
     it(`${f}: 72o is always a fold (or a free check from the big blind)`, () => {
       for (const s of SITS) for (const p of chartPositions(f)) {
         const c = getChart(f, s, p);
-        if (c) { expect(c.raise.has('72o')).toBe(false); expect(c.call.has('72o')).toBe(false); }
+        if (c) expect(chartAction(c, '72o'), `${f}/${s}/${p}`).toBe(s === 'limpers' && p === 'BB' ? 'call' : 'fold');
+      }
+    });
+    it(`${f}: only the big blind facing limpers has a non-fold default`, () => {
+      for (const s of SITS) for (const p of chartPositions(f)) {
+        const c = getChart(f, s, p);
+        if (c) expect(c.default, `${f}/${s}/${p}`).toBe(s === 'limpers' && p === 'BB' ? 'call' : 'fold');
       }
     });
   }
+
+  it('home6 overlimps and completes wider than 6-max (loose-passive game)', () => {
+    for (const p of ['CO', 'BTN', 'SB'] as const) {
+      const h = getChart('home6', 'limpers', p)!.call;
+      const s = getChart('sixmax', 'limpers', p)!.call;
+      expect(h.size, `home6 limpers ${p}`).toBeGreaterThan(s.size);
+    }
+  });
 
   it('6-max opening ranges are at least as wide as full ring from the same seat', () => {
     const pairs: [string, string][] = [['EP', 'UTG'], ['MP', 'HJ'], ['CO', 'CO'], ['BTN', 'BTN']];
@@ -77,7 +91,7 @@ describe('range tables', () => {
 describe('generated scenarios are legal and consistent', () => {
   for (const f of FORMATS) {
     it(`${f}: 5,000 preflop questions`, () => {
-      const rng = seededRng(f === 'fullring' ? 1 : 2);
+      const rng = seededRng(f === 'fullring' ? 1 : f === 'sixmax' ? 2 : 3);
       for (let i = 0; i < 5000; i++) {
         const q = preflopQuestion(f, rng);
         const t = q.table!;

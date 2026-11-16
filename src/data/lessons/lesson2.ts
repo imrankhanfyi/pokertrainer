@@ -35,6 +35,7 @@ export const lesson2: Lesson = {
         { t: 'p', text: 'If everyone before you folds, either [[open-raise]] or fold. Don’t [[limp]] (just call the big blind). Limping invites everyone into the pot, gives up the chance to win the blinds right away, and tells the table you’re unsure.' },
         {
           t: 'format',
+          home6: '**Home game (6 players):** raise to about **3bb**. Friends at home call a lot, so some will still call – that’s fine, you have the better hand.',
           fullring: '**Full ring:** raise to about **3bb**. Home games are loose, so some players will still call – that’s fine, you have the better hand.',
           sixmax: '**6-max online:** raise to about **2.5bb** (3bb from the small blind). Online players defend their blinds more, and a smaller raise risks less when they fight back.',
         },
@@ -47,6 +48,7 @@ export const lesson2: Lesson = {
         { t: 'p', text: 'When players have [[limpers|limped]] in front of you, they usually have medium or weak hands. With a strong hand, raise to [[isolate]] them: you’ll often play the pot against one weak player, with the better hand and often [[in-position|in position]].' },
         {
           t: 'format',
+          home6: '**Home game (6 players):** raise to **4bb + 1bb per limper**. Two limpers → raise to 6bb. Home-game players call a lot, so a bigger raise is needed to thin the field.',
           fullring: '**Full ring:** raise to **4bb + 1bb per limper**. Two limpers → raise to 6bb. Home-game players call a lot, so a bigger raise is needed to thin the field.',
           sixmax: '**6-max online:** raise to **3bb + 1bb per limper**. One limper → raise to 4bb.',
         },
@@ -65,6 +67,7 @@ export const lesson2: Lesson = {
         ] },
         {
           t: 'format',
+          home6: '**Home game (6 players):** players who raise usually have it. Call with pairs and good suited hands from later seats; from the blinds, stick to pairs and AQ.',
           fullring: '**Full ring:** home-game players who raise usually have it. Respect raises from early seats.',
           sixmax: '**6-max online:** raisers have wider ranges, especially from the cutoff and button, so you can play back a little more – but the beginner chart stays simple.',
         },

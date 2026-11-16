@@ -33,6 +33,7 @@ export const lesson6: Lesson = {
         { t: 'p', text: 'In the full-hand drills you play a hand from start to finish, one decision at a time. After each answer you’ll see the reasoning, then the hand continues as if you’d taken the recommended action.' },
         {
           t: 'format',
+          home6: 'You’ll see a mix of home-game and 6-max hands: isolating limpers, set mining, value-betting loose callers, defending the big blind.',
           fullring: 'You’ll see home-game hands: isolating limpers, set mining, value-betting loose callers.',
           sixmax: 'You’ll see 6-max hands: button steals, defending the big blind, knowing when to give up.',
         },

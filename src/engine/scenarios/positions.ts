@@ -21,9 +21,12 @@ function distractors(correct: Pos, pool: Pos[], n: number, rng: Rng): Pos[] {
 
 type Gen = (format: Format, rng: Rng) => Question;
 
+// No order-of-play oval (`order`) on these questions: every one asks something the oval
+// would show at a glance (your seat, who acts first or next, who acts last).
+
 /** "Which seat are you in?" – labels hidden, only the dealer button shown. */
 const nameMySeat: Gen = (format, rng) => {
-  const players = format === 'fullring' ? pick([8, 9], rng) : 6;
+  const players = format === 'fullring' ? pick([8, 9], rng) : 6; // home6 and 6-max: 6 seats
   const order = positionsFor(format, players);
   const hero = pick(order, rng);
   const opts = shuffled([hero, ...distractors(hero, order, 3, rng)], rng);

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { type Card, SUIT_NAME, RANK_NAMES, rankOf, suitOf, SUIT_SYMBOL } from '../engine/cards';
 import { GLOSSARY } from '../data/glossary';
+import { FORMATS, FORMAT_LABEL, type Format } from '../data/positions';
 
 // ---------- Icons (inline SVG, no icon font) ----------
 const svg = (d: ReactNode) => (
@@ -127,4 +128,15 @@ export function Segmented<T extends string>({ value, options, onChange, label }:
 export function Toast({ text, onDone }: { text: string; onDone: () => void }) {
   useEffect(() => { const t = setTimeout(onDone, 2200); return () => clearTimeout(t); }, [onDone]);
   return <div className="toast" role="status">{text}</div>;
+}
+
+/** Three-way table-format picker (stacked so the long labels fit an iPhone SE). */
+export function FormatPicker({ value, onChange }: { value: Format; onChange: (f: Format) => void }) {
+  return (
+    <div className="fmt-list" role="group" aria-label="Table format">
+      {FORMATS.map((f) => (
+        <button key={f} aria-pressed={value === f} onClick={() => onChange(f)}>{FORMAT_LABEL[f]}</button>
+      ))}
+    </div>
+  );
 }

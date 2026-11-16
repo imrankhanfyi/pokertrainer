@@ -50,7 +50,7 @@ function BlockView({ b }: { b: Block }) {
     case 'p': return <p><Rich text={b.text} /></p>;
     case 'tip': return <div className="tip"><Rich text={b.text} /></div>;
     case 'list': return <ul className="lesson-list">{b.items.map((x, i) => <li key={i}><Rich text={x} /></li>)}</ul>;
-    case 'format': return <div className="format-box"><div className="tiny">Showing: {FORMAT_SHORT[format]} (change on the Practice tab)</div><Rich text={format === 'fullring' ? b.fullring : b.sixmax} /></div>;
+    case 'format': return <div className="format-box"><div className="tiny">Showing: {FORMAT_SHORT[format]} (change on the Practice tab)</div><Rich text={b[format]} /></div>;
     case 'spot': return (
       <figure className="figure">
         <div className="cards-view" style={{ textAlign: 'left' }}>

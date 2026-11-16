@@ -23,7 +23,7 @@ Rules:
 
 export interface ChatMsg { role: 'user' | 'assistant'; content: string }
 
-export function scenarioMessage(facts: Record<string, string>, extra: { yourAnswer: string; recommended: string; explanation: string; closeNote?: string; reasoning?: string }): string {
+export function scenarioMessage(facts: Record<string, string>, extra: { yourAnswer: string; recommended: string; explanation: string; closeNote?: string; reasoning?: string; grade?: 'right' | 'close' | 'mistake' }): string {
   const lines = Object.entries(facts).filter(([, v]) => v).map(([k, v]) => `- ${k.replace(/_/g, ' ')}: ${v}`);
   const strip = (s: string) => s.replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, '$2').replace(/\[\[([^\]]+)\]\]/g, '$1').replace(/\*\*/g, '');
   return [
@@ -31,11 +31,14 @@ export function scenarioMessage(facts: Record<string, string>, extra: { yourAnsw
     ...lines,
     `- my answer: ${extra.yourAnswer}`,
     `- app's recommended answer: ${extra.recommended}`,
+    extra.grade === 'close' ? '- grading: CLOSE CALL. My answer is a reasonable alternative, not a mistake; the app just prefers the recommended one.' : '',
     `- app's explanation: ${strip(extra.explanation)}`,
     extra.closeNote ? `- app's note: ${strip(extra.closeNote)}` : '',
     '',
     extra.reasoning?.trim()
-      ? `I chose "${extra.yourAnswer}" because: "${extra.reasoning.trim()}". Why isn't that right here?`
+      ? extra.grade === 'close'
+        ? `I chose "${extra.yourAnswer}" because: "${extra.reasoning.trim()}". That was graded a close call (also reasonable). Why does the app prefer the other answer?`
+        : `I chose "${extra.yourAnswer}" because: "${extra.reasoning.trim()}". Why isn't that right here?`
       : 'Please explain the recommended answer in a bit more depth for a beginner.',
   ].filter((l) => l !== '').join('\n');
 }

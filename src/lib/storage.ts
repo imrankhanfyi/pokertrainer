@@ -1,5 +1,5 @@
 import type { Format } from '../data/positions';
-import type { SkillId } from '../engine/scenarios/types';
+import type { Grade, SkillId } from '../engine/scenarios/types';
 import type { Provider } from './openai';
 
 export const STATE_KEY = 'holdem-coach:state:v1';
@@ -12,7 +12,8 @@ export const DEFAULT_MODEL = 'gpt-6-luna';
 /** Google's recommended Flash-Lite on 2026-11-02; free tier available. */
 export const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash-lite';
 
-export interface SkillStats { seen: number; correct: number; recent: number[] /* 1 = right, last 20 */ }
+/** `correct` = strictly right; `close` = close calls (not a miss); `recent` holds 1 for right or close, 0 for a mistake (last 20). */
+export interface SkillStats { seen: number; correct: number; close: number; recent: number[] }
 
 export interface Settings {
   format: Format;
@@ -25,15 +26,15 @@ export interface Settings {
 }
 
 export interface AppState {
-  version: 1;
+  version: 2;
   settings: Settings;
   stats: Partial<Record<SkillId, SkillStats>>;
   lessons: Record<number, { screen: number; done: boolean }>;
 }
 
 export const defaultState = (): AppState => ({
-  version: 1,
-  settings: { format: 'fullring', fourColor: false, theme: 'system', model: DEFAULT_MODEL, provider: 'openai', geminiModel: DEFAULT_GEMINI_MODEL },
+  version: 2,
+  settings: { format: 'home6', fourColor: false, theme: 'system', model: DEFAULT_MODEL, provider: 'openai', geminiModel: DEFAULT_GEMINI_MODEL },
   stats: {},
   lessons: {},
 });
@@ -58,13 +59,16 @@ export function normalise(x: unknown): AppState {
   const d = defaultState();
   if (!x || typeof x !== 'object') throw new Error('Not a backup file');
   const o = x as Partial<AppState> & { app?: string; data?: unknown };
-  const src = (o.app === 'holdem-coach' ? o.data : o) as Partial<AppState>;
-  if (!src || typeof src !== 'object' || src.version !== 1) throw new Error('Unrecognised backup version');
+  const src = (o.app === 'holdem-coach' ? o.data : o) as Omit<Partial<AppState>, 'version'> & { version?: number };
+  if (!src || typeof src !== 'object' || (src.version !== 1 && src.version !== 2)) throw new Error('Unrecognised backup version');
   const st = src.settings ?? d.settings;
+  // One-time migration: a version-1 state switches to the new 6-handed home game charts.
+  const migrated = src.version === 1;
+  const fmt: Format = migrated ? 'home6' : st.format === 'sixmax' || st.format === 'fullring' || st.format === 'home6' ? st.format : 'home6';
   return {
-    version: 1,
+    version: 2,
     settings: {
-      format: st.format === 'sixmax' ? 'sixmax' : 'fullring',
+      format: fmt,
       fourColor: !!st.fourColor,
       theme: st.theme === 'light' || st.theme === 'dark' ? st.theme : 'system',
       model: typeof st.model === 'string' && st.model.trim() ? st.model.trim() : DEFAULT_MODEL,
@@ -75,6 +79,7 @@ export function normalise(x: unknown): AppState {
       Object.entries(src.stats ?? {}).map(([k, v]) => [k, {
         seen: Number(v?.seen) || 0,
         correct: Number(v?.correct) || 0,
+        close: Number(v?.close) || 0,
         recent: Array.isArray(v?.recent) ? v!.recent.slice(-20).map((n) => (n ? 1 : 0)) : [],
       }]),
     ),
@@ -89,9 +94,13 @@ export function exportBackup(s: AppState): string {
 
 export function importBackup(json: string): AppState { return normalise(JSON.parse(json)); }
 
-export function recordAnswer(s: AppState, skill: SkillId, correct: boolean): AppState {
-  const cur = s.stats[skill] ?? { seen: 0, correct: 0, recent: [] };
-  return { ...s, stats: { ...s.stats, [skill]: { seen: cur.seen + 1, correct: cur.correct + (correct ? 1 : 0), recent: [...cur.recent, correct ? 1 : 0].slice(-20) } } };
+export function recordAnswer(s: AppState, skill: SkillId, grade: Grade): AppState {
+  const cur = s.stats[skill] ?? { seen: 0, correct: 0, close: 0, recent: [] };
+  const pass = grade !== 'mistake';
+  return {
+    ...s,
+    stats: { ...s.stats, [skill]: { seen: cur.seen + 1, correct: cur.correct + (grade === 'right' ? 1 : 0), close: (cur.close ?? 0) + (grade === 'close' ? 1 : 0), recent: [...cur.recent, pass ? 1 : 0].slice(-20) } },
+  };
 }
 
 /** "Mix it up" weighting: lean (gently) towards skills with a higher recent error rate. */
