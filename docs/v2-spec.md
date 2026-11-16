@@ -1,6 +1,6 @@
 # Hold'em Coach v2 – spec (draft for review)
 
-Status: **draft, not approved, nothing built.** Written 2026-11-16 from the user's phone notes and two rounds of interview in the same session.
+Status: **approved by the user 2026-11-16 (including the D9/D10 defaults and U2: 6 players, ~100bb); built on branch `v2`.** Deviation: the home6 big-blind defence vs a raise uses the 6-max range instead of the source (see the ranges file header). Written 2026-11-16 from the user's phone notes and two rounds of interview in the same session.
 Release plan: **everything ships together** as one v2 (user's call).
 
 ## 0. Decisions made in the interview
