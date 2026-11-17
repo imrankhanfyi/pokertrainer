@@ -130,11 +130,12 @@ Content is kept as data, separate from the screens:
 | Full-hand walkthroughs | `src/data/hands.ts` (tests check every card, chart answer, hand-strength claim, pot total and showdown) |
 
 **Where the ranges come from:**
-- They are a deliberately conservative composite in the style of widely taught beginner charts. They are not copied from one source and are not solver output.
+- **Home 6** (the default) assumes a 6-handed, loose, passive home game with friends and 100bb stacks. Open-raise 3bb; isolate limpers with 4bb + 1bb per limper. Its limper and raise charts are based on Advanced Poker Training's starting-hand charts. The source and every place we depart from it are listed at the top of `src/data/ranges/index.ts`.
+- **Full ring** and **6-max** are a deliberately conservative composite in the style of widely taught beginner charts. They are not copied from one source and are not solver output.
 - **Full ring** assumes a loose, passive live home game with 100bb stacks. Open-raise 3bb; isolate limpers with 4bb + 1bb per limper.
 - **6-max** assumes online play with 100bb stacks. Open-raise 2.5bb; isolate limpers with 3bb + 1bb per limper.
 
-Run `npm test` after editing ranges. The tests catch typos, any overlap between "raise" and "call", and an opening range that is wider early than late.
+Run `npm test` after editing ranges. The tests catch typos, any overlap between "raise" and "call", an opening range that is wider early than late, a big blind that folds when it could check, and a big blind that defends less than the button cold-calls.
 
 **How the drill numbers are checked:**
 - Outs are counted by trying every unseen card against the opponent's hand, so a combo draw comes out at 15 outs, not 17, and "dirty" outs are excluded.
